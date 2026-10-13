@@ -1,0 +1,74 @@
+name: Build and Release DMG
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish macOS DMG
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
+          VERSION="${TAG_NAME#v}"
+          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build FnOS Manager.app and DMG installer
+        run: |
+          chmod +x scripts/build_app.sh scripts/build_dmg.sh
+          ./scripts/build_dmg.sh "${{ steps.version.outputs.version }}"
+
+      - name: Generate Release Notes
+        run: |
+          DMG_FILE="build/FnOS-Manager-${{ steps.version.outputs.version }}-arm64.dmg"
+          SHA256_HASH=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
+          cat <<EOF > release_notes.md
+          ## 🎉 FnOS Manager ${{ steps.version.outputs.tag }} 正式版发布
+
+          **FnOS Manager** 是一款专为 Apple Silicon (M1 / M2 / M3 / M4) Mac 打造的 **飞牛私有云 (fnOS) 原生虚拟化桌面管理器**，基于 macOS 原生 \`Virtualization.framework\` 构建。
+
+          ### ✨ 核心特性
+          - 🚀 **Apple Virtualization 原生内核驱动**：零第三方虚拟机依赖，兼顾低功耗与高 I/O 吞吐。
+          - 💿 **官方 ARM64 镜像内置管理**：内置飞牛官方镜像签名获取、高速下载、MD5 校验、一键检查更新与清理。
+          - 🤖 **全自动无人值守安装**：首次启动自动通过串口注入无人值守安装流程，无需手动操作安装界面即可完成系统部署。
+          - 💾 **灵活数据存储与跨盘无损迁移**：支持将飞牛数据盘（\`128G\` ~ \`2TB\` 按需占用的稀疏盘）放置在外置移动硬盘任意目录，更换目录自动完成稀疏块迁移与旧文件清理。
+          - 🌐 **免端口本地域名直达 (\`http://nas.fnos\`)**：自动配置 \`/etc/hosts\`、系统代理绕过与本地 \`80 -> 5666\` 无感转发。
+          - 📊 **实时运行日志与引导终端**：内置串口实时日志流与图形引导画面双视图切换。
+
+          ### 📦 安装说明
+          1. 下载下方 **\`FnOS-Manager-${{ steps.version.outputs.version }}-arm64.dmg\`** 并双击打开，将 **\`FnOS Manager.app\`** 拖入 \`Applications\`（应用程序）文件夹。
+          2. 若首次启动提示「无法验证开发者」，可在终端执行以下命令放行（或在「系统设置 → 隐私与安全性」中点击「仍要打开」）：
+             \`\`\`bash
+             sudo xattr -rd com.apple.quarantine "/Applications/FnOS Manager.app"
+             \`\`\`
+
+          **SHA256 (\`FnOS-Manager-${{ steps.version.outputs.version }}-arm64.dmg\`)**:
+          \`${SHA256_HASH}\`
+          EOF
+
+      - name: Create GitHub Release and Upload DMG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          DMG_FILE="build/FnOS-Manager-${{ steps.version.outputs.version }}-arm64.dmg"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$DMG_FILE" --clobber
+            gh release edit "$TAG" --title "FnOS Manager $TAG" --notes-file release_notes.md
+          else
+            gh release create "$TAG" "$DMG_FILE" \
+              --title "FnOS Manager $TAG" \
+              --notes-file release_notes.md
+          fi
