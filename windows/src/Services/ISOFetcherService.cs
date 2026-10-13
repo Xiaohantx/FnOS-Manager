@@ -51,7 +51,7 @@ namespace FnOSManager.Services
 
         private ISOFetcherService()
         {
-            CurrentISO = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 
+            CurrentISO = RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm64 
                 ? FallbackARM64ISO 
                 : FallbackX86ISO;
         }
@@ -75,7 +75,7 @@ namespace FnOSManager.Services
                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) FnOSManager/1.0.2");
 
-                var isArm = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+                var isArm = RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm64;
                 var targetPage = isArm ? "https://fnnas.com/download-arm" : "https://fnnas.com/download?key=fnos";
                 var html = await client.GetStringAsync(targetPage);
 
@@ -95,7 +95,7 @@ namespace FnOSManager.Services
             }
             catch
             {
-                CurrentISO = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? FallbackARM64ISO : FallbackX86ISO;
+                CurrentISO = RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm64 ? FallbackARM64ISO : FallbackX86ISO;
             }
             return CurrentISO;
         }

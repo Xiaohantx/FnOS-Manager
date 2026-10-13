@@ -21,7 +21,7 @@ namespace FnOSManager.Models
 
         public string Architecture => RuntimeInformation.ProcessArchitecture switch
         {
-            Architecture.Arm64 => "arm64",
+            System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
             _ => "x86_64"
         };
 
