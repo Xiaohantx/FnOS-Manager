@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk"
 if [ ! -d "$SDK_PATH" ]; then
-    SDK_PATH="$(xcrun --show-sdk-path)"
+    SDK_PATH="$(xcrun --sdk macosx --show-sdk-path)"
 fi
 
 echo "==> Using macOS SDK: $SDK_PATH"
@@ -25,7 +25,7 @@ echo "==> Gathering Swift source files..."
 SWIFT_FILES=$(find "${PROJECT_DIR}/Sources/fnOSApp" -name "*.swift")
 
 echo "==> Compiling fnOSApp with swiftc..."
-swiftc \
+xcrun --sdk macosx swiftc \
     -sdk "${SDK_PATH}" \
     -target arm64-apple-macos14.0 \
     -O \
