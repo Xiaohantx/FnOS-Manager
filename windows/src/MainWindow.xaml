@@ -1,0 +1,188 @@
+<Window x:Class="FnOSManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FnOS Manager" Height="360" Width="390"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <Style x:Key="GlassBorder" TargetType="Border">
+            <Setter Property="Background" Value="#1A1E29" />
+            <Setter Property="BorderBrush" Value="#2A3042" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main Container -->
+    <Border Background="#12151E" CornerRadius="18" BorderBrush="#252B3B" BorderThickness="1" Margin="5">
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- Header -->
+                <RowDefinition Height="Auto" /> <!-- Status Card -->
+                <RowDefinition Height="*" />    <!-- 2x2 Metric Grid -->
+                <RowDefinition Height="Auto" /> <!-- Action Buttons -->
+                <RowDefinition Height="Auto" /> <!-- Footer -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Header (Draggable) -->
+            <Grid Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Window_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Mac-style Window Dots -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Width="11" Height="11" Margin="0,0,6,0" Background="#FF5F56" BorderThickness="0" Cursor="Hand" Click="Close_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Ellipse Fill="{TemplateBinding Background}" />
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button Width="11" Height="11" Background="#FFBD2E" BorderThickness="0" Cursor="Hand" Click="Minimize_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Ellipse Fill="{TemplateBinding Background}" />
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+                <!-- Center Title -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="⚡" FontSize="14" Foreground="#3B82F6" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <TextBlock Text="FnOS Manager" FontSize="14" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Header Actions -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Margin="0,0,5,0" Click="Logs_Click">
+                        <TextBlock Text="📜" FontSize="11" />
+                    </Button>
+                    <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Click="Settings_Click">
+                        <TextBlock Text="⚙" FontSize="12" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- 2. Status Card -->
+            <Border Grid.Row="1" Style="{StaticResource GlassBorder}" Padding="12,10" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#6B7280" Margin="0,0,7,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="StatusTitle" Text="虚拟系统未启动" FontSize="13" FontWeight="Bold" Foreground="White" />
+                        </StackPanel>
+                        <TextBlock x:Name="StatusSubtitle" Text="就绪 · 点击启动" FontSize="11" Foreground="#9CA3AF" Margin="15,2,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="LogsPillBtn" Content="日志" Background="#262D3D" Foreground="#D1D5DB" FontSize="11" Padding="8,4" Margin="0,0,6,0" Style="{StaticResource ActionButton}" Click="Logs_Click" />
+                        <Button x:Name="ConsolePillBtn" Content="控制台 ↗" Background="#1E3A8A" Foreground="#93C5FD" FontSize="11" Padding="8,4" Style="{StaticResource ActionButton}" Click="OpenConsole_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 3. 2x2 Metric Grid -->
+            <Grid Grid.Row="2" Margin="0,0,0,10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Tile 1: CPU 负载 -->
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource GlassBorder}" Padding="10" Margin="0,0,4,4">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock Text="⚙ CPU 负载" FontSize="11" Foreground="#9CA3AF" />
+                            <TextBlock x:Name="CPUValueText" Text="0%" FontSize="13" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ProgressBar x:Name="CPUProgress" Height="3" Margin="0,6,0,4" Background="#2A3042" Foreground="#3B82F6" BorderThickness="0" Value="0" />
+                        <TextBlock x:Name="CPUSubText" Text="内核待命 · 4 vCPU" FontSize="9.5" Foreground="#6B7280" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Tile 2: 内存动态 -->
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource GlassBorder}" Padding="10" Margin="4,0,0,4">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock Text="📼 内存动态" FontSize="11" Foreground="#9CA3AF" />
+                            <TextBlock x:Name="MemValueText" Text="0.0 GB" FontSize="13" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ProgressBar x:Name="MemProgress" Height="3" Margin="0,6,0,4" Background="#2A3042" Foreground="#10B981" BorderThickness="0" Value="0" />
+                        <TextBlock x:Name="MemSubText" Text="4.0 GB 配额 · 未分配" FontSize="9.5" Foreground="#6B7280" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Tile 3: 数据存储 -->
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource GlassBorder}" Padding="10" Margin="0,4,4,0">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock Text="💾 数据存储" FontSize="11" Foreground="#9CA3AF" />
+                            <TextBlock x:Name="DiskValueText" Text="0.0 GB" FontSize="13" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ProgressBar x:Name="DiskProgress" Height="3" Margin="0,6,0,4" Background="#2A3042" Foreground="#F59E0B" BorderThickness="0" Value="0" />
+                        <TextBlock x:Name="DiskSubText" Text="256 GB 空间 · 动态扩容" FontSize="9.5" Foreground="#6B7280" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Tile 4: 实时流速 -->
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource GlassBorder}" Padding="10" Margin="4,4,0,0">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock Text="🌐 实时流速" FontSize="11" Foreground="#9CA3AF" />
+                            <TextBlock x:Name="NetValueText" Text="0 KB/s" FontSize="13" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right" />
+                        </Grid>
+                        <ProgressBar x:Name="NetProgress" Height="3" Margin="0,6,0,4" Background="#2A3042" Foreground="#8B5CF6" BorderThickness="0" Value="0" />
+                        <TextBlock x:Name="NetSubText" Text="网络未连接" FontSize="9.5" Foreground="#6B7280" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 4. Action Buttons -->
+            <Grid Grid.Row="3" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="MainActionButton" Content="▶ 启动" Grid.Column="0" Background="#10B981" FontSize="13" Padding="0,9" Margin="0,0,6,0" Style="{StaticResource ActionButton}" Click="StartStop_Click" />
+                <Button x:Name="ResetButton" Content="🔄 重置" Grid.Column="1" Background="#262D3D" FontSize="12" Padding="0,9" Style="{StaticResource ActionButton}" Click="Reset_Click" />
+            </Grid>
+
+            <!-- 5. Footer -->
+            <Grid Grid.Row="4">
+                <TextBlock x:Name="FooterStatus" Text="⚡ 待命就绪" FontSize="10" Foreground="#6B7280" HorizontalAlignment="Left" />
+                <TextBlock Text="fnnas.com ↗" FontSize="10" Foreground="#3B82F6" Cursor="Hand" HorizontalAlignment="Center" MouseLeftButtonDown="VisitOfficial_Click" />
+                <TextBlock x:Name="UptimeText" Text="00:00:00" FontSize="10" FontFamily="Consolas" Foreground="#6B7280" HorizontalAlignment="Right" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

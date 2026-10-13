@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import Darwin
 
 @MainActor
 public final class SystemMetricsService: ObservableObject {
@@ -26,9 +27,11 @@ public final class SystemMetricsService: ObservableObject {
 
     private var timer: Timer?
     private var currentStatus: VMStatus = .stopped
+    private var lastIBytes: UInt64 = 0
+    private var lastOBytes: UInt64 = 0
+    private var hasNetworkBaseline: Bool = false
 
     private init() {
-        // 初始保持未启动状态，不开启模拟采样
         resetToStopped()
     }
 
@@ -44,15 +47,16 @@ public final class SystemMetricsService: ObservableObject {
             if timer == nil {
                 startSampling()
             }
-            if cpuUsagePercent == 0 {
-                cpuUsagePercent = 12
-                cpuStatusText = "\(settings.cpuCount) vCPU · 调度平稳"
-                memoryUsedGB = 3.2
-                memoryStatusText = String(format: "%.1f GB 配额 · 气球回垦", memoryQuotaGB)
-                networkSpeedText = "1.2 MB/s"
-                networkSpeedSubText = "↑ 160 KB/s · 正常通信"
-                networkRatio = 0.45
+            let initialCPU = Int(round(getProcessCPU()))
+            self.cpuUsagePercent = initialCPU
+            self.cpuStatusText = "\(settings.cpuCount) vCPU · 调度平稳"
+            if let memMB = getProcessResidentMemoryMB() {
+                self.memoryUsedGB = memMB / 1024.0
             }
+            self.memoryStatusText = String(format: "%.1f GB 配额 · 气球回垦", memoryQuotaGB)
+            self.networkSpeedText = "0 KB/s"
+            self.networkSpeedSubText = "链路就绪"
+            self.networkRatio = 0.0
 
         case .paused:
             stopSamplingTimer()
@@ -61,7 +65,6 @@ public final class SystemMetricsService: ObservableObject {
             networkSpeedText = "0 KB/s"
             networkSpeedSubText = "网络静默挂起"
             networkRatio = 0.0
-            // 内存保留当前使用量，时间停止前进
 
         case .stopped, .error:
             stopSamplingTimer()
@@ -69,9 +72,9 @@ public final class SystemMetricsService: ObservableObject {
 
         case .starting, .installing, .stopping:
             stopSamplingTimer()
-            cpuUsagePercent = 25
+            cpuUsagePercent = 20
             cpuStatusText = status == .stopping ? "正在安全下线..." : "内核引导中..."
-            memoryUsedGB = 1.8
+            memoryUsedGB = min(1.8, memoryQuotaGB * 0.3)
             memoryStatusText = "正在加载系统缓存"
             networkSpeedText = "0 KB/s"
             networkSpeedSubText = "等待网络接口就绪"
@@ -99,6 +102,9 @@ public final class SystemMetricsService: ObservableObject {
         networkSpeedText = "0 KB/s"
         networkSpeedSubText = "网络未连接"
         networkRatio = 0.0
+        hasNetworkBaseline = false
+        lastIBytes = 0
+        lastOBytes = 0
         if let s = settings {
             updateRealDiskUsage(settings: s)
         }
@@ -106,6 +112,7 @@ public final class SystemMetricsService: ObservableObject {
 
     private func startSampling() {
         stopSamplingTimer()
+        hasNetworkBaseline = false
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.tick()
@@ -121,23 +128,153 @@ public final class SystemMetricsService: ObservableObject {
     private func tick() {
         guard currentStatus == .running else { return }
 
-        // 仅在真实运行中增加运行时间
+        // 1. 运行时间自然累计
         uptimeSeconds += 1
         updateFormattedUptime()
 
-        // 运行中动态波动
-        let cpuFluctuation = Int.random(in: -2...3)
-        cpuUsagePercent = max(6, min(42, cpuUsagePercent + cpuFluctuation))
+        // 2. 真实采样虚拟网卡 (bridge100) 吞吐流速
+        let net = sampleRealNetworkSpeed()
+        self.networkSpeedText = net.speedText
+        self.networkSpeedSubText = net.subText
+        self.networkRatio = net.ratio
 
-        let memDelta = Double.random(in: -0.04...0.05)
-        memoryUsedGB = max(2.0, min(memoryQuotaGB * 0.85, memoryUsedGB + memDelta))
-        memoryStatusText = String(format: "%.1f GB 配额 · 气球回垦", memoryQuotaGB)
+        // 3. 采样真实进程 CPU 与内存占用
+        let realCPU = getProcessCPU()
+        let targetCPU = max(2, min(95, Int(round(realCPU))))
+        // 平滑过渡
+        self.cpuUsagePercent = (self.cpuUsagePercent * 3 + targetCPU) / 4
+        if self.cpuUsagePercent < 15 {
+            self.cpuStatusText = "\(VMManager.shared.settings.cpuCount) vCPU · 低功耗空闲"
+        } else if self.cpuUsagePercent < 50 {
+            self.cpuStatusText = "\(VMManager.shared.settings.cpuCount) vCPU · 调度平稳"
+        } else {
+            self.cpuStatusText = "\(VMManager.shared.settings.cpuCount) vCPU · 高负载运行"
+        }
 
-        let speed = Double.random(in: 1.0...2.4)
-        let upSpeed = Int.random(in: 110...220)
-        networkSpeedText = String(format: "%.1f MB/s", speed)
-        networkSpeedSubText = "↑ \(upSpeed) KB/s · 正常通信"
-        networkRatio = min(1.0, speed / 3.0)
+        // 4. 真实物理常驻内存 (读取进程在 macOS 宿主机实际占用的 RSS 内存)
+        if let residentMB = getProcessResidentMemoryMB() {
+            let usedGB = residentMB / 1024.0
+            self.memoryUsedGB = (self.memoryUsedGB * 3.0 + usedGB) / 4.0
+        }
+        self.memoryStatusText = String(format: "%.1f GB 配额 · 气球回垦", memoryQuotaGB)
+    }
+
+    // MARK: - 真实网络接口吞吐采样 (基于 Darwin getifaddrs 统计 bridge 接口字节差)
+    private func sampleRealNetworkSpeed() -> (speedText: String, subText: String, ratio: Double) {
+        guard let current = fetchBridgeBytes() else {
+            return ("0 KB/s", "空闲待机 · 正常连接", 0.0)
+        }
+
+        guard hasNetworkBaseline else {
+            lastIBytes = current.ibytes
+            lastOBytes = current.obytes
+            hasNetworkBaseline = true
+            return ("0 KB/s", "链路就绪", 0.0)
+        }
+
+        let deltaIn = current.ibytes >= lastIBytes ? (current.ibytes - lastIBytes) : 0
+        let deltaOut = current.obytes >= lastOBytes ? (current.obytes - lastOBytes) : 0
+        lastIBytes = current.ibytes
+        lastOBytes = current.obytes
+
+        let totalBytes = deltaIn + deltaOut
+        let speedStr = formatSpeed(bytesPerSec: totalBytes)
+        let subStr: String
+
+        if totalBytes < 50 * 1024 {
+            subStr = "空闲待机 · 正常连接"
+        } else {
+            subStr = "↓ \(formatSpeed(bytesPerSec: deltaIn)) · ↑ \(formatSpeed(bytesPerSec: deltaOut))"
+        }
+
+        // 进度条比例：按 30 MB/s 满刻度线性映射
+        let ratio = min(1.0, Double(totalBytes) / (30.0 * 1024.0 * 1024.0))
+        return (speedStr, subStr, ratio)
+    }
+
+    private func fetchBridgeBytes() -> (ibytes: UInt64, obytes: UInt64)? {
+        var ifap: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifap) == 0, let first = ifap else { return nil }
+        defer { freeifaddrs(ifap) }
+
+        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        var totalIn: UInt64 = 0
+        var totalOut: UInt64 = 0
+        var found = false
+
+        while let cur = ptr {
+            let name = String(cString: cur.pointee.ifa_name)
+            // 匹配 macOS Virtualization 虚拟网桥接口 (通常为 bridge100, bridge101 或当前活动的物理/虚拟桥)
+            if (name.hasPrefix("bridge10") || name == "bridge100"),
+               cur.pointee.ifa_addr != nil,
+               cur.pointee.ifa_addr.pointee.sa_family == UInt8(AF_LINK) {
+                if let data = cur.pointee.ifa_data {
+                    let ifData = data.assumingMemoryBound(to: if_data.self)
+                    totalIn += UInt64(ifData.pointee.ifi_ibytes)
+                    totalOut += UInt64(ifData.pointee.ifi_obytes)
+                    found = true
+                }
+            }
+            ptr = cur.pointee.ifa_next
+        }
+        return found ? (totalIn, totalOut) : nil
+    }
+
+    private func formatSpeed(bytesPerSec: UInt64) -> String {
+        if bytesPerSec >= 1024 * 1024 {
+            return String(format: "%.1f MB/s", Double(bytesPerSec) / (1024.0 * 1024.0))
+        } else if bytesPerSec >= 1024 {
+            return String(format: "%d KB/s", bytesPerSec / 1024)
+        } else {
+            return "\(bytesPerSec) B/s"
+        }
+    }
+
+    // MARK: - 真实进程 CPU 占用采样
+    private func getProcessCPU() -> Double {
+        var threadsList: thread_act_array_t?
+        var threadsCount: mach_msg_type_number_t = 0
+        let kerr = task_threads(mach_task_self_, &threadsList, &threadsCount)
+        guard kerr == KERN_SUCCESS, let threads = threadsList else { return 0.0 }
+        defer {
+            vm_deallocate(
+                mach_task_self_,
+                vm_address_t(bitPattern: threads),
+                vm_size_t(threadsCount * UInt32(MemoryLayout<thread_t>.stride))
+            )
+        }
+
+        var totalUsage: Double = 0.0
+        for i in 0..<Int(threadsCount) {
+            var threadInfo = thread_basic_info()
+            var count = mach_msg_type_number_t(THREAD_INFO_MAX)
+            let kr = withUnsafeMutablePointer(to: &threadInfo) {
+                $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                    thread_info(threads[i], thread_flavor_t(THREAD_BASIC_INFO), $0, &count)
+                }
+            }
+            if kr == KERN_SUCCESS {
+                if (threadInfo.flags & TH_FLAGS_IDLE) == 0 {
+                    totalUsage += Double(threadInfo.cpu_usage) / Double(TH_USAGE_SCALE) * 100.0
+                }
+            }
+        }
+        return totalUsage
+    }
+
+    // MARK: - 真实常驻物理内存采样
+    private func getProcessResidentMemoryMB() -> Double? {
+        var taskInfo = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / 4)
+        let kerr = withUnsafeMutablePointer(to: &taskInfo) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        if kerr == KERN_SUCCESS {
+            return Double(taskInfo.resident_size) / (1024.0 * 1024.0)
+        }
+        return nil
     }
 
     private func updateFormattedUptime() {

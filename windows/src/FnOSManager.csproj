@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>FnOSManager</AssemblyName>
+    <RootNamespace>FnOSManager</RootNamespace>
+    <ApplicationIcon>Resources\AppIcon.ico</ApplicationIcon>
+    <Version>1.0.2</Version>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
+    <Company>Xiaohantx</Company>
+    <Product>FnOS Manager</Product>
+    <Description>飞牛私有云 (fnOS) Windows 原生桌面管理器</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\AppLogo.png" />
+  </ItemGroup>
+
+</Project>

@@ -252,7 +252,7 @@ public struct AboutFnOSWindowView: View {
                         .font(.system(size: 11.5, weight: .medium))
                         .foregroundColor(Color.white.opacity(0.68))
 
-                    Text("Version 1.0.1 · Apple Virtualization Engine")
+                    Text("Version 1.0.2 · Apple Virtualization Engine")
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
                         .padding(.horizontal, 10)

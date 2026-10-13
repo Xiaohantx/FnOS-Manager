@@ -1,4 +1,4 @@
-name: Publish Release
+name: Build and Publish Release
 
 on:
   push:
@@ -12,69 +12,116 @@ permissions:
   contents: write
 
 jobs:
+  build-windows:
+    name: Build Windows x64 & ARM64
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build & Publish Windows x64 Single File
+        shell: pwsh
+        run: |
+          dotnet publish windows/src/FnOSManager.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win-x64
+          Compress-Archive -Path publish/win-x64/* -DestinationPath FnOS-Manager-1.0.2-windows-x64.zip
+
+      - name: Build & Publish Windows ARM64 Single File
+        shell: pwsh
+        run: |
+          dotnet publish windows/src/FnOSManager.csproj -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -o publish/win-arm64
+          Compress-Archive -Path publish/win-arm64/* -DestinationPath FnOS-Manager-1.0.2-windows-arm64.zip
+
+      - name: Upload Windows Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: |
+            FnOS-Manager-1.0.2-windows-x64.zip
+            FnOS-Manager-1.0.2-windows-arm64.zip
+
   publish:
-    name: Publish GitHub Release
+    name: Publish GitHub Release (macOS & Windows)
+    needs: [build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-binaries
+          path: ./artifacts-win
+
       - name: Prepare Release Metadata & Notes
         id: meta
         run: |
-          TAG="v1.0.1"
-          VERSION="1.0.1"
+          TAG="v1.0.2"
+          VERSION="1.0.2"
           DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
-          if [ ! -f "$DMG_FILE" ]; then
-            echo "has_dmg=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "has_dmg=true" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "dmg=${DMG_FILE}" >> "$GITHUB_OUTPUT"
-          SHA256_HASH=$(sha256sum "$DMG_FILE" | awk '{print $1}')
+          WIN_X64="./artifacts-win/FnOS-Manager-${VERSION}-windows-x64.zip"
+          WIN_ARM64="./artifacts-win/FnOS-Manager-${VERSION}-windows-arm64.zip"
+
+          DMG_HASH=$(sha256sum "$DMG_FILE" | awk '{print $1}')
+          WIN_X64_HASH=$(sha256sum "$WIN_X64" | awk '{print $1}')
+          WIN_ARM64_HASH=$(sha256sum "$WIN_ARM64" | awk '{print $1}')
+
           cat <<EOF > release_notes.md
-          ## 🎉 FnOS Manager ${TAG} 发布
+          ## 🎉 FnOS Manager ${TAG} 全平台正式版发布
 
-          **FnOS Manager** 是一款专为 Apple Silicon (M1 / M2 / M3 / M4) Mac 打造的 **飞牛私有云 (fnOS) 原生虚拟化桌面管理器**，基于 macOS 原生 \`Virtualization.framework\` 构建。
+          **FnOS Manager** 是一款专为 **macOS (Apple Silicon)** 与 **Windows 10/11 (x86_64 / ARM64)** 打造的 **飞牛私有云 (fnOS) 原生桌面虚拟化管理器**。
 
-          ### 🔄 v1.0.1 更新内容
-          - 🔗 将关于窗口与设置页面的跳转入口统一替换为开源项目仓库地址（[\`https://github.com/Xiaohantx/FnOS-Manager\`](https://github.com/Xiaohantx/FnOS-Manager)）。
-          - 📦 同步更新应用内版本信息与打包脚本。
+          ### 🌟 本次 v1.0.2 重磅更新
+          1. 🪟 **全新推出 Windows 平台原生版本**：
+             - 统一的极简毛玻璃卡片 UI（深色模式、无边框、状态胶囊）。
+             - **双架构官方镜像自动适配**：
+               - **x86_64 电脑** (Intel / AMD)：自动获取官方 x86_64 安装镜像（[\`fnnas.com/download?key=fnos\`](https://fnnas.com/download?key=fnos)）。
+               - **ARM64 电脑** (Windows on ARM / 骁龙 X Elite)：自动获取官方 ARM64 安装镜像（[\`fnnas.com/download-arm\`](https://fnnas.com/download-arm)）。
+             - 基于 Windows 原生 **Hyper-V / WHPX** 硬件加速虚拟化内核，性能稳定免第三方虚拟机。
+             - 支持自定义存储目录（外置移动硬盘）、动态稀疏 VHDX 扩容、自动写入 \`nas.fnos\` 本地域名解析。
+          2. 🍎 **macOS 版本全面升级 100% 真实物理监控**：
+             - **数据存储**：直接通过 \`stat\` 统计 APFS 稀疏物理块大小。
+             - **CPU 负载**：接入 Mach 内核 \`task_threads\` 与活动监视器真实 \`%CPU\` 保持一致。
+             - **内存动态**：直接读取真实常驻物理内存（RSS）与 VirtIO 气球回垦。
+             - **实时流速**：接入 Darwin \`getifaddrs\` 统计虚拟网桥（\`bridge100\`）每秒真实物理网络吞吐。
 
-          ### ✨ 核心特性
-          - 🚀 **Apple Virtualization 原生内核驱动**：零第三方虚拟机依赖，兼顾低功耗与高 I/O 吞吐。
-          - 💿 **官方 ARM64 镜像内置管理**：内置飞牛官方镜像签名获取、高速下载、MD5 校验、一键检查更新与清理。
-          - 🤖 **全自动无人值守安装**：首次启动自动通过串口注入无人值守安装流程，无需手动操作安装界面即可完成系统部署。
-          - 💾 **灵活数据存储与跨盘无损迁移**：支持将飞牛数据盘（\`128G\` ~ \`2TB\` 按需占用的稀疏盘）放置在外置移动硬盘任意目录，更换目录自动完成稀疏块迁移与旧文件清理。
-          - 🌐 **免端口本地域名直达 (\`http://nas.fnos\`)**：自动配置 \`/etc/hosts\`、系统代理绕过与本地 \`80 -> 5666\` 无感转发。
-          - 📊 **实时运行日志与引导终端**：内置串口实时日志流与图形引导画面双视图切换。
+          ---
 
-          ### 📦 安装说明
-          1. 下载下方 **\`FnOS-Manager-${VERSION}-arm64.dmg\`** 并双击打开，将 **\`FnOS Manager.app\`** 拖入 \`Applications\`（应用程序）文件夹。
-          2. 若首次启动提示「无法验证开发者」，可在终端执行以下命令放行（或在「系统设置 → 隐私与安全性」中点击「仍要打开」）：
-             \`\`\`bash
-             sudo xattr -rd com.apple.quarantine "/Applications/FnOS Manager.app"
-             \`\`\`
+          ### 📦 安装包下载
 
-          **SHA256 (\`FnOS-Manager-${VERSION}-arm64.dmg\`)**:
-          \`${SHA256_HASH}\`
+          | 平台 / 架构 | 下载文件 | 推荐设备 |
+          | :--- | :--- | :--- |
+          | 🍏 **macOS (ARM64)** | [**FnOS-Manager-${VERSION}-arm64.dmg**](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-arm64.dmg) | Apple Silicon (M1/M2/M3/M4) Mac |
+          | 🪟 **Windows (x64)** | [**FnOS-Manager-${VERSION}-windows-x64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-windows-x64.zip) | Intel / AMD 64位 Windows 10/11 电脑 |
+          | 🪟 **Windows (ARM64)** | [**FnOS-Manager-${VERSION}-windows-arm64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-windows-arm64.zip) | 骁龙 X Elite / Surface Pro 11 / ARM 电脑 |
+
+          #### 校验值 (SHA-256)
+          - \`FnOS-Manager-${VERSION}-arm64.dmg\`: \`${DMG_HASH}\`
+          - \`FnOS-Manager-${VERSION}-windows-x64.zip\`: \`${WIN_X64_HASH}\`
+          - \`FnOS-Manager-${VERSION}-windows-arm64.zip\`: \`${WIN_ARM64_HASH}\`
           EOF
 
-      - name: Create GitHub Release and Upload DMG
-        if: steps.meta.outputs.has_dmg == 'true'
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ steps.meta.outputs.tag }}"
-          DMG_FILE="${{ steps.meta.outputs.dmg }}"
+          TAG="v1.0.2"
+          VERSION="1.0.2"
+          DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
+          WIN_X64="./artifacts-win/FnOS-Manager-${VERSION}-windows-x64.zip"
+          WIN_ARM64="./artifacts-win/FnOS-Manager-${VERSION}-windows-arm64.zip"
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$DMG_FILE" --clobber
-            gh release edit "$TAG" --title "FnOS Manager $TAG" --notes-file release_notes.md
+            gh release upload "$TAG" "$DMG_FILE" "$WIN_X64" "$WIN_ARM64" --clobber
+            gh release edit "$TAG" --title "FnOS Manager $TAG (macOS & Windows)" --notes-file release_notes.md
           else
-            gh release create "$TAG" "$DMG_FILE" \
+            gh release create "$TAG" "$DMG_FILE" "$WIN_X64" "$WIN_ARM64" \
               --target main \
-              --title "FnOS Manager $TAG" \
+              --title "FnOS Manager $TAG (macOS & Windows)" \
               --notes-file release_notes.md
           fi

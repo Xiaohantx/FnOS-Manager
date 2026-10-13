@@ -1,0 +1,98 @@
+<Window x:Class="FnOSManager.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="偏好设置" Height="480" Width="440"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Resources>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#1A1E29" />
+            <Setter Property="BorderBrush" Value="#2A3042" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#12151E" CornerRadius="16" BorderBrush="#252B3B" BorderThickness="1" Margin="5">
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,12" MouseLeftButtonDown="Header_MouseDown">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⚙" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="#3B82F6" />
+                    <TextBlock Text="偏好设置" FontSize="13" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Content="✕" Width="24" Height="24" Background="Transparent" Foreground="#9CA3AF" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right" Click="Close_Click" />
+            </Grid>
+
+            <!-- Content Scroll -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- 1. ISO Image Section -->
+                    <TextBlock Text="系统安装镜像 (官方 ISO)" FontSize="11" FontWeight="SemiBold" Foreground="#9CA3AF" Margin="2,0,0,5" />
+                    <Border Style="{StaticResource CardBorder}">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock x:Name="ISONameText" Text="官方 ISO 镜像" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                <TextBlock x:Name="ISOArchBadge" Text="x86_64" FontSize="10" Foreground="#38BDF8" HorizontalAlignment="Right" />
+                            </Grid>
+                            <TextBlock x:Name="ISOHashText" Text="MD5: 校验中..." FontSize="10" FontFamily="Consolas" Foreground="#6B7280" Margin="0,3,0,6" />
+                            <ProgressBar x:Name="DownloadBar" Height="3" Background="#2A3042" Foreground="#3B82F6" BorderThickness="0" Visibility="Collapsed" Margin="0,0,0,6" />
+                            <Grid>
+                                <Button x:Name="DownloadISOButton" Content="获取/更新官方镜像" Background="#2563EB" Foreground="White" BorderThickness="0" Padding="10,5" Cursor="Hand" HorizontalAlignment="Left" Click="DownloadISO_Click" />
+                                <Button Content="选择自定义 ISO..." Background="#262D3D" Foreground="#D1D5DB" BorderThickness="0" Padding="10,5" Cursor="Hand" HorizontalAlignment="Right" Click="BrowseISO_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 2. Storage Directory Section -->
+                    <TextBlock Text="数据存储空间与位置" FontSize="11" FontWeight="SemiBold" Foreground="#9CA3AF" Margin="2,0,0,5" />
+                    <Border Style="{StaticResource CardBorder}">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="存储目录 (支持外置硬盘)" FontSize="12" Foreground="White" />
+                                <Button Content="更改目录..." Background="#262D3D" Foreground="#D1D5DB" BorderThickness="0" Padding="8,4" Cursor="Hand" HorizontalAlignment="Right" Click="BrowseStorageDir_Click" />
+                            </Grid>
+                            <TextBlock x:Name="StoragePathText" Text="C:\..." FontSize="10" FontFamily="Consolas" Foreground="#9CA3AF" Margin="0,4,0,8" TextTrimming="CharacterEllipsis" />
+                            <Grid>
+                                <TextBlock Text="虚拟盘容量上限:" FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <RadioButton x:Name="Disk128" Content="128G" Foreground="White" Margin="0,0,6,0" GroupName="DiskSize" />
+                                    <RadioButton x:Name="Disk256" Content="256G" Foreground="White" Margin="0,0,6,0" GroupName="DiskSize" IsChecked="True" />
+                                    <RadioButton x:Name="Disk512" Content="512G" Foreground="White" Margin="0,0,6,0" GroupName="DiskSize" />
+                                    <RadioButton x:Name="Disk1024" Content="1TB" Foreground="White" GroupName="DiskSize" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 3. Network & Domain -->
+                    <TextBlock Text="网络与本地域名" FontSize="11" FontWeight="SemiBold" Foreground="#9CA3AF" Margin="2,0,0,5" />
+                    <Border Style="{StaticResource CardBorder}">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="绑定本地域名 (nas.fnos)" FontSize="12" Foreground="White" />
+                                <CheckBox x:Name="DomainCheck" IsChecked="True" HorizontalAlignment="Right" />
+                            </Grid>
+                            <TextBlock Text="通过自动写入 hosts 文件实现浏览器直接直达 http://nas.fnos" FontSize="10" Foreground="#6B7280" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer Save -->
+            <Grid Grid.Row="2" Margin="0,10,0,0">
+                <Button Content="关于 FnOS Manager" Background="Transparent" Foreground="#9CA3AF" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left" Click="About_Click" />
+                <Button Content="保存并完成" Background="#10B981" Foreground="White" BorderThickness="0" Padding="16,6" FontWeight="SemiBold" Cursor="Hand" HorizontalAlignment="Right" Click="Save_Click" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
