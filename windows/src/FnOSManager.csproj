@@ -9,9 +9,9 @@
     <RootNamespace>FnOSManager</RootNamespace>
     <ApplicationIcon>Resources\AppIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.2</Version>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
-    <FileVersion>1.0.2.0</FileVersion>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
     <Company>Xiaohantx</Company>
     <Product>FnOS Manager</Product>
     <Description>飞牛私有云 (fnOS) Windows 原生桌面管理器</Description>

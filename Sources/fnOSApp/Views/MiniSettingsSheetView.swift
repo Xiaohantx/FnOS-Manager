@@ -210,6 +210,7 @@ public final class AppWindowManager: NSObject {
 // MARK: - 「关于 FnOS Manager」独立窗口视图 (写清楚产品定位、核心架构与版权信息)
 public struct AboutFnOSWindowView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var updateChecker = UpdateChecker.shared
 
     public init() {}
 
@@ -252,19 +253,56 @@ public struct AboutFnOSWindowView: View {
                         .font(.system(size: 11.5, weight: .medium))
                         .foregroundColor(Color.white.opacity(0.68))
 
-                    Text("Version 1.0.2 · Apple Virtualization Engine")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 3.5)
-                        .background(
-                            Capsule()
-                                .fill(Color(red: 0.05, green: 0.5, blue: 1.0).opacity(0.14))
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(Color.blue.opacity(0.28), lineWidth: 1)
-                        )
+                    HStack(spacing: 7) {
+                        Text("Version 1.0.3 · Apple Virtualization Engine")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 3.5)
+                            .background(
+                                Capsule()
+                                    .fill(Color(red: 0.05, green: 0.5, blue: 1.0).opacity(0.14))
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.blue.opacity(0.28), lineWidth: 1)
+                            )
+
+                        Button(action: {
+                            if updateChecker.updateInfo?.hasUpdate == true, let url = updateChecker.updateInfo?.releaseURL {
+                                NSWorkspace.shared.open(url)
+                            } else {
+                                Task {
+                                    await updateChecker.checkForUpdates(manual: true)
+                                }
+                            }
+                        }) {
+                            HStack(spacing: 3.5) {
+                                if updateChecker.isChecking {
+                                    ProgressView()
+                                        .scaleEffect(0.45)
+                                        .frame(width: 10, height: 10)
+                                } else {
+                                    Image(systemName: updateChecker.updateInfo?.hasUpdate == true ? "arrow.down.circle.fill" : "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 8.5))
+                                }
+                                Text(updateChecker.checkMessage ?? "检查更新")
+                                    .font(.system(size: 9.5, weight: .medium))
+                            }
+                            .foregroundColor(updateChecker.updateInfo?.hasUpdate == true ? Color.green : Color.white.opacity(0.75))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3.5)
+                            .background(
+                                Capsule()
+                                    .fill(updateChecker.updateInfo?.hasUpdate == true ? Color.green.opacity(0.16) : Color.white.opacity(0.08))
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(updateChecker.updateInfo?.hasUpdate == true ? Color.green.opacity(0.4) : Color.white.opacity(0.15), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(.bottom, 12)
 
@@ -362,6 +400,13 @@ public struct AboutFnOSWindowView: View {
         )
         .background(MiniWindowConfigurator(targetSize: NSSize(width: 390, height: 435), title: "关于 FnOS Manager"))
         .preferredColorScheme(.dark)
+        .onAppear {
+            if updateChecker.checkMessage == nil {
+                Task {
+                    await updateChecker.checkForUpdates()
+                }
+            }
+        }
     }
 
     private func aboutFeatureRow(icon: String, color: Color, title: String, desc: String) -> some View {

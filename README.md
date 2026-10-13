@@ -65,9 +65,9 @@
 
 | 平台 / 架构 | 下载文件 | 推荐设备 |
 | :--- | :--- | :--- |
-| 🍏 **macOS (ARM64)** | [**FnOS-Manager-1.0.2-arm64.dmg**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | Apple Silicon (M1/M2/M3/M4) Mac |
-| 🪟 **Windows (x64)** | [**FnOS-Manager-1.0.2-windows-x64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | Intel / AMD 64位 Windows 10/11 电脑 |
-| 🪟 **Windows (ARM64)** | [**FnOS-Manager-1.0.2-windows-arm64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | 骁龙 X Elite / Surface Pro / ARM 电脑 |
+| 🍏 **macOS (ARM64)** | [**FnOS-Manager-1.0.3-arm64.dmg**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | Apple Silicon (M1/M2/M3/M4) Mac |
+| 🪟 **Windows (x64)** | [**FnOS-Manager-1.0.3-windows-x64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | Intel / AMD 64位 Windows 10/11 电脑 |
+| 🪟 **Windows (ARM64)** | [**FnOS-Manager-1.0.3-windows-arm64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | 骁龙 X Elite / Surface Pro / ARM 电脑 |
 
 > **macOS 提示**：由于开源版本使用本地 Ad-hoc 签名以启用 Apple `com.apple.security.virtualization` 虚拟化权限，若首次打开提示「无法验证开发者」，可在终端执行一次 `sudo xattr -rd com.apple.quarantine "/Applications/FnOS Manager.app"`，或在「系统设置 → 隐私与安全性」中点击「仍要打开」。
 
@@ -81,8 +81,8 @@ cd FnOS-Manager
 # 一键编译、打包并自动签名生成 build/FnOS Manager.app
 ./scripts/build_app.sh
 
-# 或者直接一键打包生成 DMG 安装镜像 (build/FnOS-Manager-1.0.2-arm64.dmg)
-./scripts/build_dmg.sh 1.0.2
+# 或者直接一键打包生成 DMG 安装镜像 (build/FnOS-Manager-1.0.3-arm64.dmg)
+./scripts/build_dmg.sh 1.0.3
 
 # 启动 FnOS Manager
 ./scripts/run.sh
