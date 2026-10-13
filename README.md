@@ -59,7 +59,13 @@
 - **系统**：macOS 14.0 (Sonoma) 及以上版本
 - **编译环境**：Xcode Command Line Tools (`xcode-select --install`)
 
-### 2. 克隆与一键编译运行
+### 2. 直接下载安装包（推荐）
+
+前往 [GitHub Releases](https://github.com/Xiaohantx/FnOS-Manager/releases) 下载最新版本的 **`FnOS-Manager-1.0.0-arm64.dmg`**，双击挂载后将 **`FnOS Manager.app`** 拖入 `Applications`（应用程序）文件夹即可。
+
+> **提示**：由于开源版本使用本地 Ad-hoc 签名以启用 Apple `com.apple.security.virtualization` 虚拟化权限，若首次打开提示「无法验证开发者」，可在终端执行一次 `sudo xattr -rd com.apple.quarantine "/Applications/FnOS Manager.app"`，或在「系统设置 → 隐私与安全性」中点击「仍要打开」。
+
+### 3. 从源码克隆与一键编译打包
 
 ```bash
 git clone https://github.com/Xiaohantx/FnOS-Manager.git
@@ -68,11 +74,12 @@ cd FnOS-Manager
 # 一键编译、打包并自动签名生成 build/FnOS Manager.app
 ./scripts/build_app.sh
 
+# 或者直接一键打包生成 DMG 安装镜像 (build/FnOS-Manager-1.0.0-arm64.dmg)
+./scripts/build_dmg.sh 1.0.0
+
 # 启动 FnOS Manager
 ./scripts/run.sh
 ```
-
-也可以将生成的 `build/FnOS Manager.app` 直接拖入 macOS `/Applications`（应用程序）文件夹中使用。
 
 ---
 
