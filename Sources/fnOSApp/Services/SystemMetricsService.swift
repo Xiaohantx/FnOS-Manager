@@ -230,8 +230,67 @@ public final class SystemMetricsService: ObservableObject {
         }
     }
 
+    // MARK: - 真实虚拟机进程 (com.apple.Virtualization.VirtualMachine.xpc) PID 自动发现
+    private var cachedVMPid: pid_t? = nil
+    private var lastVMCPUTime: UInt64 = 0
+    private var lastVMSampleDate = Date()
+
+    private func getVirtualMachinePID() -> pid_t? {
+        if let pid = cachedVMPid, kill(pid, 0) == 0 {
+            return pid
+        }
+        let count = proc_listpids(UInt32(PROC_ALL_PIDS), 0, nil, 0)
+        guard count > 0 else { return nil }
+        var pids = [pid_t](repeating: 0, count: Int(count) / MemoryLayout<pid_t>.stride)
+        let bytesUsed = proc_listpids(UInt32(PROC_ALL_PIDS), 0, &pids, count)
+        guard bytesUsed > 0 else { return nil }
+
+        let pathBuffer = UnsafeMutablePointer<Int8>.allocate(capacity: 4096)
+        defer { pathBuffer.deallocate() }
+
+        let myUID = getuid()
+        for pid in pids where pid > 0 {
+            var bsdInfo = proc_bsdinfo()
+            let ret = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &bsdInfo, Int32(MemoryLayout<proc_bsdinfo>.size))
+            if ret > 0 && bsdInfo.pbi_uid == myUID {
+                let pathLen = proc_pidpath(pid, pathBuffer, 4096)
+                if pathLen > 0 {
+                    let path = String(cString: pathBuffer)
+                    if path.contains("Virtualization.VirtualMachine") {
+                        cachedVMPid = pid
+                        return pid
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
     // MARK: - 真实进程 CPU 占用采样
     private func getProcessCPU() -> Double {
+        if let vmPid = getVirtualMachinePID() {
+            var info = proc_taskinfo()
+            let ret = withUnsafeMutablePointer(to: &info) { ptr in
+                proc_pidinfo(vmPid, PROC_PIDTASKINFO, 0, ptr, Int32(MemoryLayout<proc_taskinfo>.size))
+            }
+            if ret > 0 {
+                let now = Date()
+                let dt = now.timeIntervalSince(lastVMSampleDate)
+                let curCPUTime = info.pti_total_user + info.pti_total_system
+                var cpu: Double = 0.0
+                if lastVMCPUTime > 0 && dt > 0 {
+                    let dcpu = curCPUTime > lastVMCPUTime ? (curCPUTime - lastVMCPUTime) : 0
+                    cpu = (Double(dcpu) / 1_000_000_000.0) / dt * 100.0
+                }
+                lastVMCPUTime = curCPUTime
+                lastVMSampleDate = now
+                if cpu > 0.0 {
+                    return cpu
+                }
+            }
+        }
+
+        // Fallback: 采样宿主自身线程 CPU
         var threadsList: thread_act_array_t?
         var threadsCount: mach_msg_type_number_t = 0
         let kerr = task_threads(mach_task_self_, &threadsList, &threadsCount)
@@ -264,6 +323,17 @@ public final class SystemMetricsService: ObservableObject {
 
     // MARK: - 真实常驻物理内存采样
     private func getProcessResidentMemoryMB() -> Double? {
+        if let vmPid = getVirtualMachinePID() {
+            var info = proc_taskinfo()
+            let ret = withUnsafeMutablePointer(to: &info) { ptr in
+                proc_pidinfo(vmPid, PROC_PIDTASKINFO, 0, ptr, Int32(MemoryLayout<proc_taskinfo>.size))
+            }
+            if ret > 0 && info.pti_resident_size > 0 {
+                return Double(info.pti_resident_size) / (1024.0 * 1024.0)
+            }
+        }
+
+        // Fallback: 采样宿主自身常驻内存
         var taskInfo = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / 4)
         let kerr = withUnsafeMutablePointer(to: &taskInfo) {
