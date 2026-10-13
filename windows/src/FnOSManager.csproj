@@ -8,15 +8,19 @@
     <AssemblyName>FnOSManager</AssemblyName>
     <RootNamespace>FnOSManager</RootNamespace>
     <ApplicationIcon>Resources\AppIcon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.2</Version>
     <AssemblyVersion>1.0.2.0</AssemblyVersion>
     <FileVersion>1.0.2.0</FileVersion>
     <Company>Xiaohantx</Company>
     <Product>FnOS Manager</Product>
     <Description>飞牛私有云 (fnOS) Windows 原生桌面管理器</Description>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\AppIcon.ico" />
     <Resource Include="Resources\AppLogo.png" />
   </ItemGroup>
 

@@ -110,12 +110,8 @@ namespace FnOSManager
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "FnOS Manager for Windows v1.0.2\n飞牛私有云 (fnOS) 桌面虚拟化管理器\n\n项目开源地址: https://github.com/Xiaohantx/FnOS-Manager\n官方网站: https://fnnas.com",
-                "关于 FnOS Manager",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information
-            );
+            var about = new AboutWindow { Owner = this };
+            about.ShowDialog();
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)

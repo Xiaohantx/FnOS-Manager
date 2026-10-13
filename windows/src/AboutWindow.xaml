@@ -1,0 +1,93 @@
+<Window x:Class="FnOSManager.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="关于 FnOS Manager" Height="440" Width="390"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+
+    <Border Background="#12151E" CornerRadius="16" BorderBrush="#252B3B" BorderThickness="1" Margin="5">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- Header -->
+                <RowDefinition Height="Auto" /> <!-- Brand & Version -->
+                <RowDefinition Height="*" />    <!-- Features List -->
+                <RowDefinition Height="Auto" /> <!-- External Links -->
+                <RowDefinition Height="Auto" /> <!-- Copyright -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Header_MouseDown">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="ℹ" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="#3B82F6" />
+                    <TextBlock Text="关于 FnOS Manager" FontSize="13" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Content="✕" Width="24" Height="24" Background="Transparent" Foreground="#9CA3AF" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right" Click="Close_Click" />
+            </Grid>
+
+            <!-- 2. Brand & Version -->
+            <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,14">
+                <Border Width="52" Height="52" CornerRadius="12" Margin="0,0,0,8" HorizontalAlignment="Center">
+                    <Image Source="pack://application:,,,/Resources/AppLogo.png" Width="52" Height="52" RenderOptions.BitmapScalingMode="HighQuality" />
+                </Border>
+                <TextBlock Text="FnOS Manager" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                <TextBlock Text="飞牛私有云 (fnOS) Windows 原生桌面管理器" FontSize="11" Foreground="#9CA3AF" HorizontalAlignment="Center" Margin="0,3,0,6" />
+                <Border Background="#203B82F6" BorderBrush="#403B82F6" BorderThickness="1" CornerRadius="10" Padding="8,3" HorizontalAlignment="Center">
+                    <TextBlock Text="Version 1.0.2 · Windows Hyper-V Engine" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" Foreground="#38BDF8" />
+                </Border>
+            </StackPanel>
+
+            <!-- 3. Features List -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,12">
+                <Border Background="#1A1E29" BorderBrush="#2A3042" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,7">
+                    <StackPanel>
+                        <TextBlock Text="⚙ Windows Hyper-V 原生虚拟化内核" FontSize="11.5" FontWeight="SemiBold" Foreground="#60A5FA" />
+                        <TextBlock Text="基于 Windows 原生 Hyper-V 平台驱动，免除第三方虚拟机开销，提供接近物理裸机的私有云吞吐性能。" FontSize="10" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#1A1E29" BorderBrush="#2A3042" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,7">
+                    <StackPanel>
+                        <TextBlock Text="📼 动态内存管理与按需扩展虚拟磁盘" FontSize="11.5" FontWeight="SemiBold" Foreground="#34D399" />
+                        <TextBlock Text="内建 Dynamic Memory 动态内存回收与动态 VHDX 虚拟磁盘，闲时自动释放内存，存储空间按需增长。" FontSize="10" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#1A1E29" BorderBrush="#2A3042" BorderThickness="1" CornerRadius="8" Padding="10,7">
+                    <StackPanel>
+                        <TextBlock Text="🌐 虚拟网络交换与免端口本地域名直达" FontSize="11.5" FontWeight="SemiBold" Foreground="#A78BFA" />
+                        <TextBlock Text="支持 Hyper-V 虚拟网络交换机与 hosts 自动映射，浏览器直接通过 http://nas.fnos 免端口访问。" FontSize="10" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- 4. External Links -->
+            <Grid Grid.Row="3" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Content="飞牛官网 (fnnas.com) ↗" Grid.Column="0" Background="#1E293B" Foreground="#38BDF8" BorderThickness="1" BorderBrush="#334155" Padding="0,7" Margin="0,0,5,0" Cursor="Hand" Click="VisitOfficial_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button Content="项目仓库 (GitHub) ↗" Grid.Column="1" Background="#1E293B" Foreground="#E2E8F0" BorderThickness="1" BorderBrush="#334155" Padding="0,7" Margin="5,0,0,0" Cursor="Hand" Click="VisitGitHub_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- 5. Copyright -->
+            <TextBlock Grid.Row="4" Text="声明：底层系统与固件产权归属飞牛官方 (fnnas.com) 所有" FontSize="9.5" Foreground="#64748B" HorizontalAlignment="Center" />
+        </Grid>
+    </Border>
+</Window>

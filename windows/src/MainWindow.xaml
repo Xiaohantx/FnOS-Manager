@@ -68,16 +68,16 @@
 
                 <!-- Center Title -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock Text="⚡" FontSize="14" Foreground="#3B82F6" VerticalAlignment="Center" Margin="0,0,5,0" />
-                    <TextBlock Text="FnOS Manager" FontSize="14" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                    <Image Source="pack://application:,,,/Resources/AppLogo.png" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="FnOS Manager" FontSize="13.5" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
                 </StackPanel>
 
                 <!-- Header Actions -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Margin="0,0,5,0" Click="Logs_Click">
+                    <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Margin="0,0,5,0" Click="Logs_Click" ToolTip="运行日志">
                         <TextBlock Text="📜" FontSize="11" />
                     </Button>
-                    <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Click="Settings_Click">
+                    <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Click="Settings_Click" ToolTip="偏好设置">
                         <TextBlock Text="⚙" FontSize="12" />
                     </Button>
                 </StackPanel>
@@ -92,11 +92,31 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Vertical">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#6B7280" Margin="0,0,7,0" VerticalAlignment="Center" />
-                            <TextBlock x:Name="StatusTitle" Text="虚拟系统未启动" FontSize="13" FontWeight="Bold" Foreground="White" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Grid Width="14" Height="14" Margin="0,0,7,0" VerticalAlignment="Center">
+                                <Ellipse x:Name="StatusDot" Width="8.5" Height="8.5" Fill="#6B7280" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Canvas x:Name="SpinningRing" Width="14" Height="14" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                                    <Canvas.RenderTransform>
+                                        <RotateTransform x:Name="SpinnerRotate" Angle="0" />
+                                    </Canvas.RenderTransform>
+                                    <Canvas.Triggers>
+                                        <EventTrigger RoutedEvent="Canvas.Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetName="SpinnerRotate" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Canvas.Triggers>
+                                    <Ellipse Width="14" Height="14" Stroke="#F59E0B" StrokeThickness="2" StrokeDashArray="3,2" />
+                                </Canvas>
+                            </Grid>
+                            <TextBlock x:Name="StatusTitle" Text="虚拟系统未启动" FontSize="13" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                            <Border x:Name="BootTimerBadge" Background="#26F59E0B" BorderBrush="#4DF59E0B" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="6,0,0,0" Visibility="Collapsed" VerticalAlignment="Center">
+                                <TextBlock x:Name="BootTimerText" Text="00:00" FontSize="9.5" FontWeight="SemiBold" FontFamily="Consolas" Foreground="#F59E0B" />
+                            </Border>
                         </StackPanel>
-                        <TextBlock x:Name="StatusSubtitle" Text="就绪 · 点击启动" FontSize="11" Foreground="#9CA3AF" Margin="15,2,0,0" />
+                        <TextBlock x:Name="StatusSubtitle" Text="就绪 · 点击启动" FontSize="11" Foreground="#9CA3AF" Margin="21,2,0,0" Cursor="Hand" MouseLeftButtonDown="Subtitle_Click" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

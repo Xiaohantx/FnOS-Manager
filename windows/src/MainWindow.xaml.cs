@@ -11,6 +11,7 @@ namespace FnOSManager
     {
         private readonly VMManager _vm = VMManager.Shared;
         private readonly SystemMetricsService _metrics = SystemMetricsService.Shared;
+        private readonly System.Windows.Threading.DispatcherTimer _uiTimer;
 
         public MainWindow()
         {
@@ -18,6 +19,16 @@ namespace FnOSManager
 
             _vm.StatusChanged += OnStatusChanged;
             _metrics.MetricsUpdated += OnMetricsUpdated;
+
+            _uiTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _uiTimer.Tick += (s, e) =>
+            {
+                if (_vm.Status == VMStatus.Starting || _vm.Status == VMStatus.Installing)
+                {
+                    BootTimerText.Text = string.Format("{0:D2}:{1:D2}", _vm.BootingElapsedSeconds / 60, _vm.BootingElapsedSeconds % 60);
+                }
+            };
+            _uiTimer.Start();
 
             UpdateUI();
         }
@@ -74,6 +85,14 @@ namespace FnOSManager
                 Process.Start(new ProcessStartInfo(domain) { UseShellExecute = true });
             }
             catch { }
+        }
+
+        private void Subtitle_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (_vm.Status == VMStatus.Running)
+            {
+                OpenConsole_Click(sender, e);
+            }
         }
 
         private void VisitOfficial_Click(object sender, MouseButtonEventArgs e)
@@ -134,25 +153,63 @@ namespace FnOSManager
             switch (_vm.Status)
             {
                 case VMStatus.Running:
+                    StatusDot.Visibility = Visibility.Visible;
+                    SpinningRing.Visibility = Visibility.Collapsed;
+                    BootTimerBadge.Visibility = Visibility.Collapsed;
                     StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
-                    StatusSubtitle.Text = $"nas.fnos · {_vm.CurrentIP}";
+                    StatusSubtitle.Text = $"{_vm.Settings.CustomDomainPrefix}.fnos · {_vm.CurrentIP}";
                     MainActionButton.Content = "■ 停止系统";
                     MainActionButton.Background = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
+                    MainActionButton.IsEnabled = true;
+                    ResetButton.IsEnabled = true;
+                    ResetButton.Opacity = 1.0;
+                    ConsolePillBtn.IsEnabled = true;
+                    ConsolePillBtn.Opacity = 1.0;
                     FooterStatus.Text = "⚡ 系统运行中";
                     break;
                 case VMStatus.Starting:
                 case VMStatus.Installing:
-                    StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
-                    StatusSubtitle.Text = "正在引导服务与网络...";
-                    MainActionButton.Content = "⏳ 启动中...";
+                    StatusDot.Visibility = Visibility.Collapsed;
+                    SpinningRing.Visibility = Visibility.Visible;
+                    BootTimerBadge.Visibility = Visibility.Visible;
+                    BootTimerText.Text = string.Format("{0:D2}:{1:D2}", _vm.BootingElapsedSeconds / 60, _vm.BootingElapsedSeconds % 60);
+                    StatusSubtitle.Text = _vm.LatestLogLine;
+                    MainActionButton.Content = _vm.Status == VMStatus.Installing ? "⏳ 安装引导中..." : "⏳ 启动中...";
                     MainActionButton.Background = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
-                    FooterStatus.Text = "⚡ 正在启动";
+                    MainActionButton.IsEnabled = false;
+                    ResetButton.IsEnabled = false;
+                    ResetButton.Opacity = 0.5;
+                    ConsolePillBtn.IsEnabled = false;
+                    ConsolePillBtn.Opacity = 0.4;
+                    FooterStatus.Text = "⚡ 正在引导";
+                    break;
+                case VMStatus.Stopping:
+                    StatusDot.Visibility = Visibility.Collapsed;
+                    SpinningRing.Visibility = Visibility.Visible;
+                    BootTimerBadge.Visibility = Visibility.Collapsed;
+                    StatusSubtitle.Text = "正在释放资源并关闭...";
+                    MainActionButton.Content = "⏳ 正在关机...";
+                    MainActionButton.Background = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
+                    MainActionButton.IsEnabled = false;
+                    ResetButton.IsEnabled = false;
+                    ResetButton.Opacity = 0.5;
+                    ConsolePillBtn.IsEnabled = false;
+                    ConsolePillBtn.Opacity = 0.4;
+                    FooterStatus.Text = "⚡ 正在关机";
                     break;
                 default:
+                    StatusDot.Visibility = Visibility.Visible;
+                    SpinningRing.Visibility = Visibility.Collapsed;
+                    BootTimerBadge.Visibility = Visibility.Collapsed;
                     StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80));
                     StatusSubtitle.Text = "就绪 · 点击启动";
                     MainActionButton.Content = "▶ 启动系统";
                     MainActionButton.Background = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
+                    MainActionButton.IsEnabled = true;
+                    ResetButton.IsEnabled = true;
+                    ResetButton.Opacity = 1.0;
+                    ConsolePillBtn.IsEnabled = false;
+                    ConsolePillBtn.Opacity = 0.4;
                     FooterStatus.Text = "⚡ 待命就绪";
                     break;
             }

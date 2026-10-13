@@ -1,11 +1,11 @@
 <div align="center">
   <img src="Resources/AppLogo.png" width="110" height="110" alt="FnOS Manager Logo" />
   <h1>FnOS Manager</h1>
-  <p><strong>飞牛私有云 (fnOS ARM64) macOS 原生虚拟化桌面管理器</strong></p>
+  <p><strong>飞牛私有云 (fnOS) 全平台原生虚拟化桌面管理器 (macOS &amp; Windows)</strong></p>
   <p>
-    <img src="https://img.shields.io/badge/Platform-macOS%2014.0%2B%20(Apple%20Silicon)-007AFF?style=flat-square&logo=apple" alt="macOS Apple Silicon" />
-    <img src="https://img.shields.io/badge/Engine-Apple%20Virtualization-34C759?style=flat-square" alt="Apple Virtualization" />
-    <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?style=flat-square&logo=swift" alt="Swift 5.9+" />
+    <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-007AFF?style=flat-square&logo=apple" alt="macOS Apple Silicon" />
+    <img src="https://img.shields.io/badge/Windows-x64%20%7C%20ARM64-0078D6?style=flat-square&logo=windows" alt="Windows x64 / ARM64" />
+    <img src="https://img.shields.io/badge/Engine-Apple%20Virtualization%20%2F%20Hyper--V-34C759?style=flat-square" alt="Virtualization Engines" />
     <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License" />
   </p>
 </div>
@@ -14,9 +14,9 @@
 
 ## 📖 项目简介
 
-**FnOS Manager** 是一款专为 Apple Silicon (`M1` / `M2` / `M3` / `M4`) Mac 打造的轻量级原生 **飞牛私有云 (fnOS ARM64)** 虚拟化桌面管理器。
+**FnOS Manager** 是一款专为 **Apple Silicon (`M1` / `M2` / `M3` / `M4`) Mac** 与 **Windows 10/11 (`x86_64` / `ARM64`) 电脑** 打造的轻量级原生 **飞牛私有云 (fnOS)** 桌面虚拟化管理器。
 
-无需安装 VMware Fusion、Parallels Desktop 或 UTM 等第三方虚拟机软件，也无需手动配置复杂的 UEFI 固件、GPT 分区或安装向导 —— **FnOS Manager** 基于苹果官方 `Virtualization.framework` 原生 Hypervisor 引擎，提供**官方镜像一键获取、全自动无人值守安装、外置硬盘存储池直挂与迁移、自适应内存气球回垦、以及 `http://nas.fnos` 本地域名直达**的一站式极简体验。
+无需繁琐配置第三方虚拟机或手动引导向导 —— **FnOS Manager** 在 macOS 上基于苹果官方 `Virtualization.framework` 原生 Hypervisor，在 Windows 上基于微软原生 `Hyper-V / WHPX` 内核，提供**官方镜像一键获取、全自动无人值守安装、外置硬盘存储目录动态扩容、自适应内存调度与回垦、以及 `http://nas.fnos` 本地域名直达**的高度统一体验。
 
 ---
 
