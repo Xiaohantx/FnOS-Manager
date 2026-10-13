@@ -53,13 +53,15 @@ namespace FnOSManager
 
         private void BrowseStorageDir_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFolderDialog
+            var dialog = new OpenFileDialog
             {
-                Title = "选择飞牛 fnOS 数据存储目录 (支持外置硬盘)"
+                Title = "选择飞牛 fnOS 数据存储目录所在文件夹或任意文件 (支持外置硬盘)",
+                CheckFileExists = false,
+                FileName = "选择此文件夹"
             };
             if (dialog.ShowDialog() == true)
             {
-                StoragePathText.Text = dialog.FolderName;
+                StoragePathText.Text = Path.GetDirectoryName(dialog.FileName) ?? dialog.FileName;
             }
         }
 

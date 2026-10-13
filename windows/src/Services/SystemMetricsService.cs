@@ -39,14 +39,15 @@ namespace FnOSManager.Services
         private long _lastOutBytes = 0;
         private bool _netBaseline = false;
 
-        private PerformanceCounter? _cpuCounter;
+        private TimeSpan _lastCpuTime = TimeSpan.Zero;
+        private DateTime _lastCpuSample = DateTime.UtcNow;
 
         private SystemMetricsService()
         {
             try
             {
-                _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-                _cpuCounter.NextValue();
+                _lastCpuTime = Process.GetCurrentProcess().TotalProcessorTime;
+                _lastCpuSample = DateTime.UtcNow;
             }
             catch { }
         }
@@ -91,10 +92,18 @@ namespace FnOSManager.Services
             // 1. 真实 CPU 采样
             try
             {
-                if (_cpuCounter != null)
+                var now = DateTime.UtcNow;
+                var proc = Process.GetCurrentProcess();
+                var curCpuTime = proc.TotalProcessorTime;
+                var timeDelta = (now - _lastCpuSample).TotalMilliseconds;
+                var cpuDelta = (curCpuTime - _lastCpuTime).TotalMilliseconds;
+                _lastCpuTime = curCpuTime;
+                _lastCpuSample = now;
+
+                if (timeDelta > 0)
                 {
-                    var val = _cpuCounter.NextValue();
-                    CPUUsagePercent = Math.Max(2, Math.Min(98, (int)Math.Round(val)));
+                    var usage = (cpuDelta / (timeDelta * Environment.ProcessorCount)) * 100.0;
+                    CPUUsagePercent = Math.Max(2, Math.Min(98, (int)Math.Round(usage)));
                     CPUStatusText = CPUUsagePercent < 15 ? "低功耗空闲" : (CPUUsagePercent < 50 ? "调度平稳" : "高负载运行");
                 }
             }
