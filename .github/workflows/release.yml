@@ -61,6 +61,7 @@ jobs:
       - name: Prepare Release Metadata & Notes
         id: meta
         run: |
+          ls -la ./artifacts-win || true
           TAG="v1.0.2"
           VERSION="1.0.2"
           DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
