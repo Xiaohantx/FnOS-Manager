@@ -252,7 +252,7 @@ public struct AboutFnOSWindowView: View {
                         .font(.system(size: 11.5, weight: .medium))
                         .foregroundColor(Color.white.opacity(0.68))
 
-                    Text("Version 1.0.0 · Apple Virtualization Engine")
+                    Text("Version 1.0.1 · Apple Virtualization Engine")
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
                         .padding(.horizontal, 10)
@@ -295,7 +295,7 @@ public struct AboutFnOSWindowView: View {
 
                 Spacer(minLength: 8)
 
-                // 官方链接与开源作者入口
+                // 官方链接与开源仓库入口
                 HStack(spacing: 10) {
                     Link(destination: URL(string: "https://fnnas.com/")!) {
                         HStack(spacing: 5) {
@@ -320,11 +320,11 @@ public struct AboutFnOSWindowView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Link(destination: URL(string: "https://github.com/Xiaohantx")!) {
+                    Link(destination: URL(string: "https://github.com/Xiaohantx/FnOS-Manager")!) {
                         HStack(spacing: 5) {
-                            Image(systemName: "person.crop.circle")
-                                .font(.system(size: 11))
-                            Text("作者 (@Xiaohantx)")
+                            Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                .font(.system(size: 10.5, weight: .semibold))
+                            Text("项目仓库 (GitHub)")
                                 .font(.system(size: 11, weight: .medium))
                             Image(systemName: "arrow.up.right")
                                 .font(.system(size: 8.5, weight: .semibold))

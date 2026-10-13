@@ -600,7 +600,7 @@ public struct MainWindowView: View {
                         Text(l10n.developerSection)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.white)
-                        Text("https://github.com/Xiaohantx")
+                        Text("https://github.com/Xiaohantx/FnOS-Manager")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundColor(Color.blue.opacity(0.85))
                     }
@@ -608,7 +608,7 @@ public struct MainWindowView: View {
                     Spacer()
 
                     Button(action: {
-                        if let url = URL(string: "https://github.com/Xiaohantx") {
+                        if let url = URL(string: "https://github.com/Xiaohantx/FnOS-Manager") {
                             NSWorkspace.shared.open(url)
                         }
                     }) {

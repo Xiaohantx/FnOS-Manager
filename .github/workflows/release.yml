@@ -22,8 +22,8 @@ jobs:
       - name: Prepare Release Metadata & Notes
         id: meta
         run: |
-          TAG="v1.0.0"
-          VERSION="1.0.0"
+          TAG="v1.0.1"
+          VERSION="1.0.1"
           DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
           if [ ! -f "$DMG_FILE" ]; then
             echo "has_dmg=false" >> "$GITHUB_OUTPUT"
@@ -35,9 +35,13 @@ jobs:
           echo "dmg=${DMG_FILE}" >> "$GITHUB_OUTPUT"
           SHA256_HASH=$(sha256sum "$DMG_FILE" | awk '{print $1}')
           cat <<EOF > release_notes.md
-          ## 🎉 FnOS Manager ${TAG} 正式版发布
+          ## 🎉 FnOS Manager ${TAG} 发布
 
           **FnOS Manager** 是一款专为 Apple Silicon (M1 / M2 / M3 / M4) Mac 打造的 **飞牛私有云 (fnOS) 原生虚拟化桌面管理器**，基于 macOS 原生 \`Virtualization.framework\` 构建。
+
+          ### 🔄 v1.0.1 更新内容
+          - 🔗 将关于窗口与设置页面的跳转入口统一替换为开源项目仓库地址（[\`https://github.com/Xiaohantx/FnOS-Manager\`](https://github.com/Xiaohantx/FnOS-Manager)）。
+          - 📦 同步更新应用内版本信息与打包脚本。
 
           ### ✨ 核心特性
           - 🚀 **Apple Virtualization 原生内核驱动**：零第三方虚拟机依赖，兼顾低功耗与高 I/O 吞吐。

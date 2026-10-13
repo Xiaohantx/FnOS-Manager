@@ -114,7 +114,7 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
                 dynamicOptimizationHint: "VirtIO 动态内存回垦 · I/O 缓存加速 · 硬件熵池",
 
                 developerSection: "开源项目与主页",
-                developerSubtitle: "GitHub: https://github.com/Xiaohantx",
+                developerSubtitle: "GitHub: https://github.com/Xiaohantx/FnOS-Manager",
                 visitGithubBtn: "访问 GitHub 主页"
             )
 
@@ -215,7 +215,7 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
                 dynamicOptimizationHint: "VirtIO Dynamic Ballooning · Cached I/O · Hardware Entropy",
 
                 developerSection: "Open Source & Developer",
-                developerSubtitle: "GitHub: https://github.com/Xiaohantx",
+                developerSubtitle: "GitHub: https://github.com/Xiaohantx/FnOS-Manager",
                 visitGithubBtn: "Visit GitHub Profile"
             )
 
@@ -316,7 +316,7 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
                 dynamicOptimizationHint: "VirtIO 動態記憶體回墾 · I/O 快取加速 · 硬體熵池",
 
                 developerSection: "開源專案與首頁",
-                developerSubtitle: "GitHub: https://github.com/Xiaohantx",
+                developerSubtitle: "GitHub: https://github.com/Xiaohantx/FnOS-Manager",
                 visitGithubBtn: "造訪 GitHub 首頁"
             )
         }
