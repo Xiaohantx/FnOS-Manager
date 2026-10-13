@@ -36,15 +36,9 @@
                     <Border Background="#203B82F6" BorderBrush="#403B82F6" BorderThickness="1" CornerRadius="10" Padding="8,3" Margin="0,0,6,0">
                         <TextBlock Text="Version 1.0.3 · Windows Hyper-V Engine" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" Foreground="#38BDF8" />
                     </Border>
-                    <Button x:Name="CheckUpdateBtn" Background="#1A2234" BorderBrush="#334155" BorderThickness="1" Cursor="Hand" Click="CheckUpdate_Click">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
-                                    <TextBlock x:Name="UpdateBtnText" Text="检查更新" FontSize="9.5" Foreground="#94A3B8" Padding="7,2" VerticalAlignment="Center" />
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                    <Border x:Name="CheckUpdateBorder" Background="#1A2234" BorderBrush="#334155" BorderThickness="1" CornerRadius="10" Padding="8,3" Cursor="Hand" MouseLeftButtonUp="CheckUpdate_Click">
+                        <TextBlock x:Name="UpdateBtnText" Text="检查更新" FontSize="9.5" Foreground="#94A3B8" VerticalAlignment="Center" />
+                    </Border>
                 </StackPanel>
             </StackPanel>
 

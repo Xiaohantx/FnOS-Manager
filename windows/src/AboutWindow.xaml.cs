@@ -36,17 +36,19 @@ namespace FnOSManager
                 if (_updateService.CurrentUpdateInfo?.HasUpdate == true)
                 {
                     UpdateBtnText.Foreground = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
-                    CheckUpdateBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
+                    CheckUpdateBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
+                    CheckUpdateBorder.Background = new SolidColorBrush(Color.FromArgb(0x33, 0x10, 0xB9, 0x81));
                 }
                 else
                 {
                     UpdateBtnText.Foreground = new SolidColorBrush(Color.FromRgb(0x94, 0xA3, 0xB8));
-                    CheckUpdateBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(0x33, 0x41, 0x55));
+                    CheckUpdateBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x33, 0x41, 0x55));
+                    CheckUpdateBorder.Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x22, 0x34));
                 }
             });
         }
 
-        private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
+        private async void CheckUpdate_Click(object sender, MouseButtonEventArgs e)
         {
             if (_updateService.CurrentUpdateInfo?.HasUpdate == true)
             {
