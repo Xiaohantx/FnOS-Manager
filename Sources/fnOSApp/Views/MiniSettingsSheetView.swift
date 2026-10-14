@@ -237,35 +237,37 @@ public struct AboutFnOSWindowView: View {
                     }
                 }
                 .frame(height: 38)
-                .padding(.top, 10)
+                .padding(.top, 8)
                 .padding(.horizontal, 14)
 
                 // 头部品牌与版本标识
                 VStack(spacing: 7) {
                     LogoBadgeView(size: 54)
-                        .padding(.top, 4)
+                        .padding(.top, 2)
+                        .shadow(color: Color.blue.opacity(0.22), radius: 10, x: 0, y: 3)
 
                     Text("FnOS Manager")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
 
                     Text("飞牛私有云 (fnOS) macOS 原生虚拟化桌面管理器")
-                        .font(.system(size: 11.5, weight: .medium))
-                        .foregroundColor(Color.white.opacity(0.68))
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(Color.white.opacity(0.62))
 
-                    HStack(spacing: 7) {
-                        Text("Version 1.0.3 · Apple Virtualization Engine")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
+                    // 版本与更新状态组合胶囊 (开阔无挤压)
+                    HStack(spacing: 8) {
+                        Text("Version 1.0.3 · Apple Silicon")
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundColor(Color(red: 0.38, green: 0.78, blue: 1.0))
                             .padding(.horizontal, 9)
                             .padding(.vertical, 3.5)
                             .background(
                                 Capsule()
-                                    .fill(Color(red: 0.05, green: 0.5, blue: 1.0).opacity(0.14))
+                                    .fill(Color(red: 0.05, green: 0.5, blue: 1.0).opacity(0.12))
                             )
                             .overlay(
                                 Capsule()
-                                    .stroke(Color.blue.opacity(0.28), lineWidth: 1)
+                                    .stroke(Color.blue.opacity(0.24), lineWidth: 0.8)
                             )
 
                         Button(action: {
@@ -277,28 +279,45 @@ public struct AboutFnOSWindowView: View {
                                 }
                             }
                         }) {
-                            HStack(spacing: 3.5) {
+                            HStack(spacing: 4) {
                                 if updateChecker.isChecking {
                                     ProgressView()
                                         .scaleEffect(0.45)
-                                        .frame(width: 10, height: 10)
-                                } else {
-                                    Image(systemName: updateChecker.updateInfo?.hasUpdate == true ? "arrow.down.circle.fill" : "arrow.triangle.2.circlepath")
+                                        .frame(width: 9, height: 9)
+                                    Text("检查中...")
+                                        .font(.system(size: 9.5, weight: .medium))
+                                } else if updateChecker.updateInfo?.hasUpdate == true {
+                                    Image(systemName: "sparkles")
                                         .font(.system(size: 8.5))
+                                    Text("新版本 v\(updateChecker.updateInfo?.latestVersion ?? "")")
+                                        .font(.system(size: 9.5, weight: .semibold))
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 7.5, weight: .bold))
+                                } else {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 8.5))
+                                        .foregroundColor(Color.green)
+                                    Text(updateChecker.checkMessage ?? "已是最新版本")
+                                        .font(.system(size: 9.5, weight: .medium))
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 7.5))
+                                        .opacity(0.4)
                                 }
-                                Text(updateChecker.checkMessage ?? "检查更新")
-                                    .font(.system(size: 9.5, weight: .medium))
                             }
-                            .foregroundColor(updateChecker.updateInfo?.hasUpdate == true ? Color.green : Color.white.opacity(0.75))
-                            .padding(.horizontal, 8)
+                            .foregroundColor(updateChecker.updateInfo?.hasUpdate == true ? .white : Color.white.opacity(0.78))
+                            .padding(.horizontal, 8.5)
                             .padding(.vertical, 3.5)
                             .background(
                                 Capsule()
-                                    .fill(updateChecker.updateInfo?.hasUpdate == true ? Color.green.opacity(0.16) : Color.white.opacity(0.08))
+                                    .fill(updateChecker.updateInfo?.hasUpdate == true ?
+                                          Color.green.opacity(0.85) :
+                                          Color.white.opacity(0.06))
                             )
                             .overlay(
                                 Capsule()
-                                    .stroke(updateChecker.updateInfo?.hasUpdate == true ? Color.green.opacity(0.4) : Color.white.opacity(0.15), lineWidth: 1)
+                                    .stroke(updateChecker.updateInfo?.hasUpdate == true ?
+                                            Color.green.opacity(0.9) :
+                                            Color.white.opacity(0.12), lineWidth: 0.8)
                             )
                         }
                         .buttonStyle(.plain)
@@ -306,30 +325,30 @@ public struct AboutFnOSWindowView: View {
                 }
                 .padding(.bottom, 12)
 
-                // 核心功能与技术架构说明卡片
-                VStack(alignment: .leading, spacing: 8.5) {
-                    aboutFeatureRow(
-                        icon: "cpu.fill",
-                        color: Color(red: 0.1, green: 0.6, blue: 1.0),
-                        title: "Apple Virtualization 原生虚拟化引擎",
-                        desc: "基于 macOS 原生 Hypervisor 框架驱动，免除第三方虚拟机开销，提供接近物理裸机的私有云吞吐性能。"
-                    )
-
-                    aboutFeatureRow(
-                        icon: "memorychip.fill",
-                        color: Color(red: 0.2, green: 0.85, blue: 0.45),
-                        title: "自适应动态内存气球与算力调度",
-                        desc: "内建 Virtio 内存气球回收与闲时内核休眠调度，空闲时自动将内存与 CPU 交还 macOS 宿主系统。"
-                    )
-
-                    aboutFeatureRow(
-                        icon: "network",
-                        color: Color(red: 0.75, green: 0.4, blue: 0.95),
-                        title: "局域网桥接与免端口本地域名直达",
-                        desc: "支持物理网卡独立 IP 分配与 /etc/hosts 自动映射，浏览器直接通过 http://nas.fnos 免端口访问。"
-                    )
+                // 系统与运行规格卡片 (精致、紧凑、毛玻璃)
+                VStack(spacing: 0) {
+                    aboutSpecRow(icon: "cpu", title: "虚拟化引擎", value: "Apple Virtualization (原生)")
+                    Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 10)
+                    aboutSpecRow(icon: "memorychip", title: "动态内存调度", value: "VirtIO 动态气球回垦")
+                    Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 10)
+                    aboutSpecRow(icon: "network", title: "控制台直达", value: "http://nas.fnos", isLink: true) {
+                        if let url = URL(string: "http://nas.fnos") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 10)
+                    aboutSpecRow(icon: "internaldrive", title: "数据存储模式", value: "APFS 稀疏动态扩容")
                 }
-                .padding(.horizontal, 16)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(Color.white.opacity(0.035))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 0.8)
+                )
+                .padding(.horizontal, 18)
 
                 Spacer(minLength: 8)
 
@@ -338,22 +357,22 @@ public struct AboutFnOSWindowView: View {
                     Link(destination: URL(string: "https://fnnas.com/")!) {
                         HStack(spacing: 5) {
                             Image(systemName: "globe")
-                                .font(.system(size: 11))
-                            Text("飞牛官网 (fnnas.com)")
+                                .font(.system(size: 10.5))
+                            Text("飞牛官方网站")
                                 .font(.system(size: 11, weight: .medium))
                             Image(systemName: "arrow.up.right")
-                                .font(.system(size: 8.5, weight: .semibold))
+                                .font(.system(size: 8, weight: .semibold))
                         }
                         .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7.5)
+                        .padding(.vertical, 7)
                         .background(
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .fill(Color(red: 0.05, green: 0.5, blue: 1.0).opacity(0.12))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.blue.opacity(0.25), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.blue.opacity(0.22), lineWidth: 0.8)
                         )
                     }
                     .buttonStyle(.plain)
@@ -361,33 +380,33 @@ public struct AboutFnOSWindowView: View {
                     Link(destination: URL(string: "https://github.com/Xiaohantx/FnOS-Manager")!) {
                         HStack(spacing: 5) {
                             Image(systemName: "chevron.left.forwardslash.chevron.right")
-                                .font(.system(size: 10.5, weight: .semibold))
+                                .font(.system(size: 10, weight: .semibold))
                             Text("项目仓库 (GitHub)")
                                 .font(.system(size: 11, weight: .medium))
                             Image(systemName: "arrow.up.right")
-                                .font(.system(size: 8.5, weight: .semibold))
+                                .font(.system(size: 8, weight: .semibold))
                         }
-                        .foregroundColor(.white.opacity(0.88))
+                        .foregroundColor(.white.opacity(0.85))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7.5)
+                        .padding(.vertical, 7)
                         .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.white.opacity(0.07))
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.white.opacity(0.06))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
                         )
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 7)
+                .padding(.horizontal, 18)
+                .padding(.bottom, 6)
 
                 // 底部版权声明
                 Text("声明：底层系统与固件产权归属飞牛官方 (fnnas.com) 所有")
                     .font(.system(size: 9.5))
-                    .foregroundColor(Color.white.opacity(0.36))
+                    .foregroundColor(Color.white.opacity(0.35))
                     .padding(.bottom, 9)
             }
         }
@@ -398,7 +417,7 @@ public struct AboutFnOSWindowView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
-        .background(MiniWindowConfigurator(targetSize: NSSize(width: 390, height: 435), title: "关于 FnOS Manager"))
+        .background(MiniWindowConfigurator(targetSize: NSSize(width: 380, height: 400), title: "关于 FnOS Manager"))
         .preferredColorScheme(.dark)
         .onAppear {
             if updateChecker.checkMessage == nil {
@@ -409,40 +428,38 @@ public struct AboutFnOSWindowView: View {
         }
     }
 
-    private func aboutFeatureRow(icon: String, color: Color, title: String, desc: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+    private func aboutSpecRow(icon: String, title: String, value: String, isLink: Bool = false, action: (() -> Void)? = nil) -> some View {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(color)
-                .frame(width: 24, height: 24)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(color.opacity(0.14))
-                )
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(Color(red: 0.38, green: 0.78, blue: 1.0))
+                .frame(width: 16)
 
-            VStack(alignment: .leading, spacing: 2.5) {
-                Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
+            Text(title)
+                .font(.system(size: 11, weight: .regular))
+                .foregroundColor(.white.opacity(0.6))
 
-                Text(desc)
-                    .font(.system(size: 10.5))
-                    .foregroundColor(Color.white.opacity(0.55))
-                    .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+
+            if isLink {
+                Button(action: { action?() }) {
+                    HStack(spacing: 3) {
+                        Text(value)
+                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 7.5, weight: .semibold))
+                    }
+                    .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text(value)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.85))
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 8.5)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.03))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
-        )
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
     }
 }
 

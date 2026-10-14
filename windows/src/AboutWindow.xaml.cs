@@ -64,6 +64,15 @@ namespace FnOSManager
             }
         }
 
+        private void ConsoleUrl_Click(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo("http://nas.fnos") { UseShellExecute = true });
+            }
+            catch { }
+        }
+
         private void Header_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed) DragMove();

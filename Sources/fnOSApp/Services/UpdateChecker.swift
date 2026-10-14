@@ -43,9 +43,9 @@ public final class UpdateChecker: ObservableObject {
                 self.updateInfo = info
                 self.isChecking = false
                 if hasUpdate {
-                    self.checkMessage = "🎉 发现新版本 v\(cleanTag)"
+                    self.checkMessage = "发现新版本 v\(cleanTag)"
                 } else {
-                    self.checkMessage = "✓ 已是最新版本 (v\(Self.currentVersion))"
+                    self.checkMessage = "已是最新版本"
                 }
                 return
             }
@@ -69,14 +69,14 @@ public final class UpdateChecker: ObservableObject {
                     let info = AppUpdateInfo(latestVersion: latestVer, hasUpdate: hasUpdate, releaseURL: releaseURL, releaseNotes: nil)
                     self.updateInfo = info
                     self.isChecking = false
-                    self.checkMessage = hasUpdate ? "🎉 发现新版本 v\(latestVer)" : "✓ 已是最新版本 (v\(Self.currentVersion))"
+                    self.checkMessage = hasUpdate ? "发现新版本 v\(latestVer)" : "已是最新版本"
                     return
                 }
             }
         } catch { }
 
         self.isChecking = false
-        self.checkMessage = "✓ 已是最新版本 (v\(Self.currentVersion))"
+        self.checkMessage = "已是最新版本"
     }
 
     private func isVersion(_ v1: String, greaterThan v2: String) -> Bool {

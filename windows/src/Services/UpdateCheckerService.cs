@@ -56,7 +56,7 @@ namespace FnOSManager.Services
 
                     CurrentUpdateInfo = result;
                     IsChecking = false;
-                    CheckMessage = result.HasUpdate ? $"🎉 发现新版本 v{result.LatestVersion}" : $"✓ 已是最新版本 (v{CurrentVersion})";
+                    CheckMessage = result.HasUpdate ? $"新版本 v{result.LatestVersion}" : "已是最新版本";
                     StatusChanged?.Invoke();
                     return result;
                 }
@@ -80,7 +80,7 @@ namespace FnOSManager.Services
 
                     CurrentUpdateInfo = result;
                     IsChecking = false;
-                    CheckMessage = result.HasUpdate ? $"🎉 发现新版本 v{result.LatestVersion}" : $"✓ 已是最新版本 (v{CurrentVersion})";
+                    CheckMessage = result.HasUpdate ? $"新版本 v{result.LatestVersion}" : "已是最新版本";
                     StatusChanged?.Invoke();
                     return result;
                 }
@@ -88,7 +88,7 @@ namespace FnOSManager.Services
             catch { }
 
             IsChecking = false;
-            CheckMessage = $"✓ 已是最新版本 (v{CurrentVersion})";
+            CheckMessage = "已是最新版本";
             StatusChanged?.Invoke();
             return result;
         }
