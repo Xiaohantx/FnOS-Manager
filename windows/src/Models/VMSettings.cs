@@ -16,6 +16,7 @@ namespace FnOSManager.Models
         public bool AttachISO { get; set; } = true;
         public string CustomDomainPrefix { get; set; } = "nas";
         public bool IsCustomDomainEnabled { get; set; } = true;
+        public int WebPort { get; set; } = 8000;
         public bool DynamicOptimization { get; set; } = true;
         public bool AutoStartOnLogin { get; set; } = false;
 

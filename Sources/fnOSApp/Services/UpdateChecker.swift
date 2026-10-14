@@ -72,7 +72,7 @@ public final class UpdateChecker: ObservableObject {
                     self.checkMessage = "发现新版本 v\(cleanTag)"
                 } else {
                     UserDefaults.standard.removeObject(forKey: "cached_new_version")
-                    self.checkMessage = "已是最新版本"
+                    self.checkMessage = "已是最新"
                 }
                 return
             }
@@ -102,7 +102,7 @@ public final class UpdateChecker: ObservableObject {
                         self.checkMessage = "发现新版本 v\(latestVer)"
                     } else {
                         UserDefaults.standard.removeObject(forKey: "cached_new_version")
-                        self.checkMessage = "已是最新版本"
+                        self.checkMessage = "已是最新"
                     }
                     return
                 }
@@ -110,7 +110,7 @@ public final class UpdateChecker: ObservableObject {
         } catch { }
 
         self.isChecking = false
-        self.checkMessage = "已是最新版本"
+        self.checkMessage = "已是最新"
     }
 
     private func isVersion(_ v1: String, greaterThan v2: String) -> Bool {

@@ -100,6 +100,12 @@ namespace FnOSManager.Services
             return CurrentISO;
         }
 
+        public Task DownloadOfficialISOAsync(string vmDataDir)
+        {
+            var dest = GetBuiltInISOPath(vmDataDir);
+            return StartDownloadAsync(dest);
+        }
+
         public async Task StartDownloadAsync(string destinationPath)
         {
             if (IsDownloading) return;

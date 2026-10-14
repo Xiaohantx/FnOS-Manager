@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -8,7 +9,7 @@ namespace FnOSManager.Services
 {
     public class UpdateInfo
     {
-        public string LatestVersion { get; set; } = "1.0.3";
+        public string LatestVersion { get; set; } = "1.0.4";
         public bool HasUpdate { get; set; } = false;
         public string ReleaseUrl { get; set; } = "https://github.com/Xiaohantx/FnOS-Manager/releases";
     }
@@ -91,7 +92,7 @@ namespace FnOSManager.Services
                     CurrentUpdateInfo = result;
                     IsChecking = false;
                     HasNewVersionBadge = result.HasUpdate;
-                    CheckMessage = result.HasUpdate ? $"新版本 v{result.LatestVersion}" : "已是最新版本";
+                    CheckMessage = result.HasUpdate ? $"新版本 v{result.LatestVersion}" : "已是最新";
                     StatusChanged?.Invoke();
                     return result;
                 }
@@ -116,7 +117,7 @@ namespace FnOSManager.Services
                     CurrentUpdateInfo = result;
                     IsChecking = false;
                     HasNewVersionBadge = result.HasUpdate;
-                    CheckMessage = result.HasUpdate ? $"新版本 v{result.LatestVersion}" : "已是最新版本";
+                    CheckMessage = result.HasUpdate ? $"新版本 v{result.LatestVersion}" : "已是最新";
                     StatusChanged?.Invoke();
                     return result;
                 }
@@ -124,7 +125,7 @@ namespace FnOSManager.Services
             catch { }
 
             IsChecking = false;
-            CheckMessage = "已是最新版本";
+            CheckMessage = "已是最新";
             StatusChanged?.Invoke();
             return result;
         }

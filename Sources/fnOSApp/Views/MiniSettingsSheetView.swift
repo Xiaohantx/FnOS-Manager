@@ -250,16 +250,16 @@ public struct AboutFnOSWindowView: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text("飞牛私有云 (fnOS) macOS 原生虚拟化桌面管理器")
+                    Text("飞牛私有云桌面管理器")
                         .font(.system(size: 11, weight: .regular))
                         .foregroundColor(Color.white.opacity(0.62))
 
-                    // 版本与更新状态组合胶囊 (开阔无挤压)
+                    // 版本与更新状态组合胶囊 (极简克制，开阔无挤压)
                     HStack(spacing: 8) {
-                        Text("Version 1.0.4 · Apple Silicon")
-                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        Text("v1.0.4 · ARM64")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundColor(Color(red: 0.38, green: 0.78, blue: 1.0))
-                            .padding(.horizontal, 9)
+                            .padding(.horizontal, 8.5)
                             .padding(.vertical, 3.5)
                             .background(
                                 Capsule()
@@ -297,7 +297,7 @@ public struct AboutFnOSWindowView: View {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 8.5))
                                         .foregroundColor(Color.green)
-                                    Text(updateChecker.checkMessage ?? "已是最新版本")
+                                    Text(updateChecker.checkMessage == "已是最新版本" ? "已是最新" : (updateChecker.checkMessage ?? "已是最新"))
                                         .font(.system(size: 9.5, weight: .medium))
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .font(.system(size: 7.5))
