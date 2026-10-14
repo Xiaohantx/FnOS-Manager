@@ -5,8 +5,11 @@ public struct MiniCardView: View {
     @Environment(\.openWindow) private var openWindow
     @ObservedObject var vmManager = VMManager.shared
     @ObservedObject var metrics = SystemMetricsService.shared
+    @ObservedObject var updateChecker = UpdateChecker.shared
 
     @State private var showResetConfirmation = false
+    @State private var showMissingISOAlert = false
+    @State private var copyToastText: String? = nil
 
     public init() {}
 
@@ -66,6 +69,25 @@ public struct MiniCardView: View {
                     }
                 )
                 .zIndex(100)
+            }
+
+            // 5. 首次未下载镜像引导下载模态弹窗
+            if showMissingISOAlert {
+                MissingISOModalView(
+                    onCancel: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showMissingISOAlert = false
+                        }
+                    },
+                    onConfirmDownload: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showMissingISOAlert = false
+                        }
+                        ISOFetcherService.shared.downloadBuiltInISO()
+                        openWindow(id: "settings-window")
+                    }
+                )
+                .zIndex(110)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -129,14 +151,24 @@ public struct MiniCardView: View {
                 Button(action: {
                     openWindow(id: "settings-window")
                 }) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 13.5, weight: .regular))
-                        .foregroundColor(Color.white.opacity(0.72))
-                        .frame(width: 22, height: 22)
-                        .contentShape(Rectangle())
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 13.5, weight: .regular))
+                            .foregroundColor(Color.white.opacity(0.72))
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+
+                        if updateChecker.hasNewVersionBadge {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 6.5, height: 6.5)
+                                .offset(x: 1, y: 1)
+                                .shadow(color: Color.green.opacity(0.8), radius: 2)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
-                .help("偏好设置")
+                .help(updateChecker.hasNewVersionBadge ? "偏好设置 (发现新版本)" : "偏好设置")
             }
         }
         .frame(height: 38)
@@ -182,16 +214,45 @@ public struct MiniCardView: View {
                     }
                 }
 
-                Text(statusSubtitleText)
-                    .font(.system(size: 10.5, design: .monospaced))
-                    .foregroundColor(isTransitioningStatus ? Color(red: 1.0, green: 0.78, blue: 0.42) : Color.white.opacity(0.55))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .onTapGesture {
-                        if vmManager.status == .running, let url = vmManager.webConsoleURL {
-                            NSWorkspace.shared.open(url)
+                HStack(spacing: 5) {
+                    Text(statusSubtitleText)
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundColor(isTransitioningStatus ? Color(red: 1.0, green: 0.78, blue: 0.42) : Color.white.opacity(0.6))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    if vmManager.status == .running {
+                        Button(action: {
+                            copyAddressToClipboard()
+                        }) {
+                            HStack(spacing: 2) {
+                                if copyToastText != nil {
+                                    Text("✓ 已复制")
+                                        .font(.system(size: 8.5, weight: .bold))
+                                        .foregroundColor(Color.green)
+                                } else {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.system(size: 8.5, weight: .semibold))
+                                        .foregroundColor(Color.white.opacity(0.55))
+                                }
+                            }
+                            .padding(.horizontal, 4.5)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule()
+                                    .fill(copyToastText != nil ? Color.green.opacity(0.18) : Color.white.opacity(0.06))
+                            )
                         }
+                        .buttonStyle(.plain)
+                        .help("点击复制访问地址")
                     }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if vmManager.status == .running {
+                        copyAddressToClipboard()
+                    }
+                }
             }
 
             Spacer(minLength: 4)
@@ -381,6 +442,12 @@ public struct MiniCardView: View {
             // 按钮 1: 根据当前状态显示「启动 / 引导中 Loading / 暂停 / 继续」
             Button(action: {
                 guard !isTransitioningStatus else { return }
+                if (vmManager.status == .stopped || vmManager.status == .error) && vmManager.needsISODownloadToBoot {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showMissingISOAlert = true
+                    }
+                    return
+                }
                 vmManager.togglePlayPause()
             }) {
                 HStack(spacing: 6) {
@@ -573,6 +640,20 @@ public struct MiniCardView: View {
         case .starting: return "内核启动中"
         case .stopping: return "正在释放资源"
         case .error: return "服务异常"
+        }
+    }
+
+    private func copyAddressToClipboard() {
+        let copyText = vmManager.webConsoleURL?.absoluteString ?? (vmManager.currentIP.map { "http://\($0):\(vmManager.settings.webPort)" } ?? "http://nas.fnos")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(copyText, forType: .string)
+        withAnimation(.easeInOut(duration: 0.15)) {
+            copyToastText = "已复制"
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                copyToastText = nil
+            }
         }
     }
 }

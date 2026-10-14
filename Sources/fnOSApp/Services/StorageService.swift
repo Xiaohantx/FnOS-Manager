@@ -16,10 +16,81 @@ public enum StorageError: LocalizedError {
     }
 }
 
+public struct StorageHealthCheckResult {
+    public let isHealthy: Bool
+    public let errorMessage: String?
+    public let availableFreeGB: Double
+
+    public init(isHealthy: Bool, errorMessage: String?, availableFreeGB: Double) {
+        self.isHealthy = isHealthy
+        self.errorMessage = errorMessage
+        self.availableFreeGB = availableFreeGB
+    }
+}
+
 public class StorageService {
     public static let shared = StorageService()
 
     private init() {}
+
+    /// 存储健康与外置移动硬盘预检：防御挂载离线、只读或空间不足 (< 3.0 GB)
+    public func checkStorageHealth(at directoryPath: String) -> StorageHealthCheckResult {
+        let fm = FileManager.default
+        let url = URL(fileURLWithPath: directoryPath).standardizedFileURL
+
+        // 1. 检查外置盘是否存在且在线
+        var isDir: ObjCBool = false
+        _ = fm.fileExists(atPath: url.path, isDirectory: &isDir)
+
+        // 寻找最近的已存在父目录
+        var checkTargetURL = url
+        while !fm.fileExists(atPath: checkTargetURL.path) && checkTargetURL.path != "/" {
+            checkTargetURL = checkTargetURL.deletingLastPathComponent()
+        }
+
+        if !fm.fileExists(atPath: checkTargetURL.path) {
+            return StorageHealthCheckResult(isHealthy: false, errorMessage: "外置驱动器离线或未连接，请插入移动硬盘后再试", availableFreeGB: 0)
+        }
+
+        // 2. 检查可写权限
+        if !fm.isWritableFile(atPath: checkTargetURL.path) {
+            if checkTargetURL.path.hasPrefix("/Volumes/") {
+                return StorageHealthCheckResult(isHealthy: false, errorMessage: "外置存储设备当前为只读模式或权限受限，请检查磁盘写保护状态", availableFreeGB: 0)
+            }
+            return StorageHealthCheckResult(isHealthy: false, errorMessage: "数据存储目录无写入权限", availableFreeGB: 0)
+        }
+
+        // 3. 检查剩余容量 (需大于 3.0 GB 防御镜像/日志挤爆)
+        do {
+            let resValues = try checkTargetURL.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey])
+            let avail = resValues.volumeAvailableCapacityForImportantUsage ?? Int64(resValues.volumeAvailableCapacity ?? 0)
+            let freeGB = Double(avail) / (1024.0 * 1024.0 * 1024.0)
+            if freeGB < 3.0 {
+                return StorageHealthCheckResult(
+                    isHealthy: false,
+                    errorMessage: String(format: "数据存储驱动器剩余空间不足 (仅剩 %.1f GB，至少需保留 3.0 GB)", freeGB),
+                    availableFreeGB: freeGB
+                )
+            }
+            return StorageHealthCheckResult(isHealthy: true, errorMessage: nil, availableFreeGB: freeGB)
+        } catch {
+            var stat = statfs()
+            if statfs(checkTargetURL.path, &stat) == 0 {
+                let freeBytes = Int64(stat.f_bavail) * Int64(stat.f_bsize)
+                let freeGB = Double(freeBytes) / (1024.0 * 1024.0 * 1024.0)
+                if freeGB < 3.0 {
+                    return StorageHealthCheckResult(
+                        isHealthy: false,
+                        errorMessage: String(format: "数据存储驱动器剩余空间不足 (仅剩 %.1f GB，至少需保留 3.0 GB)", freeGB),
+                        availableFreeGB: freeGB
+                    )
+                }
+                return StorageHealthCheckResult(isHealthy: true, errorMessage: nil, availableFreeGB: freeGB)
+            }
+        }
+
+        return StorageHealthCheckResult(isHealthy: true, errorMessage: nil, availableFreeGB: 100.0)
+    }
 
     public func ensureDirectory(at path: String) throws -> URL {
         let url = URL(fileURLWithPath: path)

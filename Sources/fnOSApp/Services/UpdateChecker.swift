@@ -11,13 +11,37 @@ public struct AppUpdateInfo: Equatable {
 @MainActor
 public final class UpdateChecker: ObservableObject {
     public static let shared = UpdateChecker()
-    public static let currentVersion = "1.0.3"
+    public static let currentVersion = "1.0.4"
 
     @Published public var isChecking: Bool = false
     @Published public var updateInfo: AppUpdateInfo? = nil
     @Published public var checkMessage: String? = nil
+    @Published public var hasNewVersionBadge: Bool = false
 
-    private init() {}
+    private let lastCheckKey = "last_update_check_timestamp"
+    private let checkIntervalSeconds: TimeInterval = 12 * 3600 // 12 小时检查一次防限流
+
+    private init() {
+        // 读取本地历史更新状态
+        if let lastUpdateVer = UserDefaults.standard.string(forKey: "cached_new_version"),
+           isVersion(lastUpdateVer, greaterThan: Self.currentVersion) {
+            self.hasNewVersionBadge = true
+        }
+    }
+
+    /// 应用启动时在后台静默检查更新 (带 12 小时节流，防止触发 GitHub API 限流)
+    public func checkInBackgroundOnLaunch() {
+        let lastCheck = UserDefaults.standard.double(forKey: lastCheckKey)
+        let now = Date().timeIntervalSince1970
+        if now - lastCheck < checkIntervalSeconds && hasNewVersionBadge {
+            return
+        }
+
+        Task {
+            await checkForUpdates(manual: false)
+            UserDefaults.standard.set(now, forKey: lastCheckKey)
+        }
+    }
 
     public func checkForUpdates(manual: Bool = false) async {
         isChecking = true
@@ -42,9 +66,12 @@ public final class UpdateChecker: ObservableObject {
                 let info = AppUpdateInfo(latestVersion: cleanTag, hasUpdate: hasUpdate, releaseURL: releaseURL, releaseNotes: body)
                 self.updateInfo = info
                 self.isChecking = false
+                self.hasNewVersionBadge = hasUpdate
                 if hasUpdate {
+                    UserDefaults.standard.set(cleanTag, forKey: "cached_new_version")
                     self.checkMessage = "发现新版本 v\(cleanTag)"
                 } else {
+                    UserDefaults.standard.removeObject(forKey: "cached_new_version")
                     self.checkMessage = "已是最新版本"
                 }
                 return
@@ -69,7 +96,14 @@ public final class UpdateChecker: ObservableObject {
                     let info = AppUpdateInfo(latestVersion: latestVer, hasUpdate: hasUpdate, releaseURL: releaseURL, releaseNotes: nil)
                     self.updateInfo = info
                     self.isChecking = false
-                    self.checkMessage = hasUpdate ? "发现新版本 v\(latestVer)" : "已是最新版本"
+                    self.hasNewVersionBadge = hasUpdate
+                    if hasUpdate {
+                        UserDefaults.standard.set(latestVer, forKey: "cached_new_version")
+                        self.checkMessage = "发现新版本 v\(latestVer)"
+                    } else {
+                        UserDefaults.standard.removeObject(forKey: "cached_new_version")
+                        self.checkMessage = "已是最新版本"
+                    }
                     return
                 }
             }

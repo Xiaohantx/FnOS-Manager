@@ -7,6 +7,7 @@ struct fnOSApp: App {
 
     init() {
         UserDefaults.standard.set(true, forKey: "ApplePersistenceIgnoreState")
+        UpdateChecker.shared.checkInBackgroundOnLaunch()
     }
 
     var body: some Scene {
@@ -43,7 +44,7 @@ struct fnOSApp: App {
                 .edgesIgnoringSafeArea(.all)
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 390, height: 435)
+        .defaultSize(width: 380, height: 400)
         .windowResizability(.contentSize)
 
         // 独立窗口 2: 偏好设置 (点击左上角菜单「设置…」或界面齿轮均弹出此独立窗口)

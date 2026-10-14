@@ -34,7 +34,7 @@
                 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <Border Background="#203B82F6" BorderBrush="#403B82F6" BorderThickness="1" CornerRadius="10" Padding="8,3" Margin="0,0,6,0">
-                        <TextBlock Text="Version 1.0.3 · Windows" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" Foreground="#38BDF8" />
+                        <TextBlock Text="Version 1.0.4 · Windows" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" Foreground="#38BDF8" />
                     </Border>
                     <Border x:Name="CheckUpdateBorder" Background="#1A2234" BorderBrush="#334155" BorderThickness="1" CornerRadius="10" Padding="8,3" Cursor="Hand" MouseLeftButtonUp="CheckUpdate_Click">
                         <TextBlock x:Name="UpdateBtnText" Text="检查更新" FontSize="9.5" Foreground="#94A3B8" VerticalAlignment="Center" />

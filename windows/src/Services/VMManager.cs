@@ -83,6 +83,17 @@ namespace FnOSManager.Services
 
             AddLog("ENGINE", "收到启动指令，正在初始化 Windows 虚拟化环境...");
 
+            // 0. 存储健康与外置移动硬盘预检
+            var health = CheckStorageHealth(Settings.DataStorageDirectory);
+            if (!health.IsHealthy)
+            {
+                SetStatus(VMStatus.Error);
+                var err = health.ErrorMessage ?? "存储目录异常";
+                AddLog("ERROR", $"存储预检未通过: {err}");
+                MessageBox.Show(err, "存储健康预检提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             // 1. 存储目录与磁盘检查
             Directory.CreateDirectory(Settings.VMDataDirectory);
             Directory.CreateDirectory(Settings.DataStorageDirectory);
@@ -92,16 +103,20 @@ namespace FnOSManager.Services
 
             bool isFirstInstall = !File.Exists(sysDisk);
 
-            // 2. 镜像检查 (与 Mac 保持严格一致：未内置时友好提示前往设置获取，杜绝静默假死)
+            // 2. 镜像检查 (与 Mac 保持严格一致：未内置时引导一键自动下载)
             var isoService = ISOFetcherService.Shared;
             var activeISO = File.Exists(Settings.ISOPath) ? Settings.ISOPath : isoService.GetBuiltInISOPath(Settings.VMDataDirectory);
 
             if (isFirstInstall && !File.Exists(activeISO))
             {
                 SetStatus(VMStatus.Stopped);
-                var msg = $"尚未内置系统安装镜像，请先点击右上角设置获取官方 {isoService.CurrentISO.Architecture.ToUpper()} 镜像";
-                AddLog("ERROR", msg);
-                MessageBox.Show(msg, "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                var msg = $"尚未检测到官方系统安装镜像 ({isoService.CurrentISO.Architecture.ToUpper()})。\n\n是否立即一键自动下载官方镜像？下载完成后即可直接启动并安装系统。";
+                var res = MessageBox.Show(msg, "获取系统镜像", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (res == MessageBoxResult.Yes)
+                {
+                    _ = isoService.DownloadOfficialISOAsync(Settings.VMDataDirectory);
+                    AddLog("ISO", "已在后台启动官方镜像下载任务，可点击右上角设置查看进度");
+                }
                 return;
             }
 
@@ -405,6 +420,37 @@ namespace FnOSManager.Services
                 Task.Delay(1000).Wait();
             }
             return null;
+        }
+
+        public (bool IsHealthy, string? ErrorMessage) CheckStorageHealth(string path)
+        {
+            try
+            {
+                var fullPath = Path.GetFullPath(path);
+                var root = Path.GetPathRoot(fullPath);
+                if (string.IsNullOrEmpty(root) || !Directory.Exists(root))
+                {
+                    return (false, "外置存储设备未连接或驱动器离线，请插入后重试");
+                }
+
+                var drive = new DriveInfo(root);
+                if (!drive.IsReady)
+                {
+                    return (false, $"存储驱动器 ({root}) 当前不可用或处于保护状态");
+                }
+
+                var freeGB = drive.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0);
+                if (freeGB < 3.0)
+                {
+                    return (false, $"数据驱动器 ({root}) 剩余可用空间不足 (仅剩 {freeGB:F1} GB，需保留至少 3.0 GB)");
+                }
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"存储环境检查异常: {ex.Message}");
+            }
         }
     }
 }

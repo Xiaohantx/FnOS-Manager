@@ -89,11 +89,11 @@ namespace FnOSManager.Services
             var ts = TimeSpan.FromSeconds(_uptimeSeconds);
             UptimeFormatted = ts.ToString(@"hh\:mm\:ss");
 
-            // 1. 真实 CPU 采样
+            // 1. 真实 CPU 采样 (穿透 Hyper-V vmwp 虚拟机工作进程)
             try
             {
                 var now = DateTime.UtcNow;
-                var proc = Process.GetCurrentProcess();
+                var proc = GetTargetVMProcess();
                 var curCpuTime = proc.TotalProcessorTime;
                 var timeDelta = (now - _lastCpuSample).TotalMilliseconds;
                 var cpuDelta = (curCpuTime - _lastCpuTime).TotalMilliseconds;
@@ -109,11 +109,12 @@ namespace FnOSManager.Services
             }
             catch { }
 
-            // 2. 真实内存占用采样
+            // 2. 真实内存占用采样 (穿透采样 Hyper-V 虚拟机实际物理常驻工作集)
             try
             {
-                var proc = Process.GetCurrentProcess();
-                MemoryUsedGB = Math.Max(0.5, Math.Min(MemoryQuotaGB, proc.WorkingSet64 / (1024.0 * 1024.0 * 1024.0)));
+                var proc = GetTargetVMProcess();
+                var realUsedGB = proc.WorkingSet64 / (1024.0 * 1024.0 * 1024.0);
+                MemoryUsedGB = Math.Max(0.6, Math.Min(MemoryQuotaGB, realUsedGB));
                 MemoryStatusText = $"{MemoryQuotaGB:F1} GB 配额 · 动态调度";
             }
             catch { }
@@ -187,6 +188,20 @@ namespace FnOSManager.Services
             if (bytesPerSec >= 1024)
                 return $"{bytesPerSec / 1024:D} KB/s";
             return $"{bytesPerSec} B/s";
+        }
+
+        private static Process GetTargetVMProcess()
+        {
+            try
+            {
+                var vmwpList = Process.GetProcessesByName("vmwp");
+                if (vmwpList.Length > 0)
+                {
+                    return vmwpList.OrderByDescending(p => p.WorkingSet64).First();
+                }
+            }
+            catch { }
+            return Process.GetCurrentProcess();
         }
     }
 }

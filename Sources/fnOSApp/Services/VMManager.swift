@@ -132,6 +132,16 @@ public class VMManager: NSObject, ObservableObject {
         return 0
     }
 
+    public var needsISODownloadToBoot: Bool {
+        let diskURL = URL(fileURLWithPath: settings.vmDataDirectory).appendingPathComponent("fnos_system.raw")
+        let actuallyInstalled = storageService.isDiskInstalled(url: diskURL)
+        if !actuallyInstalled {
+            ISOFetcherService.shared.refreshBuiltInISOState()
+            return !ISOFetcherService.shared.hasBuiltInISO && !FileManager.default.fileExists(atPath: settings.isoPath)
+        }
+        return false
+    }
+
     public func startVM(forceInstallMode: Bool = false) {
         guard status == .stopped || status == .error else { return }
 
@@ -140,6 +150,17 @@ public class VMManager: NSObject, ObservableObject {
 
         Task { [weak self] in
             guard let self = self else { return }
+
+            // 1. 存储健康与外置移动硬盘预检
+            let health = self.storageService.checkStorageHealth(at: self.settings.dataStorageDirectory)
+            if !health.isHealthy {
+                let err = health.errorMessage ?? "数据存储目录不可用"
+                self.status = .error
+                self.errorMessage = err
+                self.addSystemLog("存储健康预检未通过: \(err)", tag: "STORAGE", level: .error)
+                return
+            }
+
             do {
                 let vmDir = try storageService.ensureDirectory(at: settings.vmDataDirectory)
                 let diskURL = try storageService.ensureSparseDisk(
@@ -166,7 +187,7 @@ public class VMManager: NSObject, ObservableObject {
                 if shouldAttachISO {
                     guard FileManager.default.fileExists(atPath: settings.isoPath) else {
                         self.status = .stopped
-                        let msg = "尚未内置系统镜像，请先打开「偏好设置」点击「获取镜像」"
+                        let msg = "尚未内置系统镜像，请点击一键获取官方 ARM64 镜像"
                         self.errorMessage = msg
                         self.addSystemLog(msg, tag: "ERROR", level: .error)
                         return

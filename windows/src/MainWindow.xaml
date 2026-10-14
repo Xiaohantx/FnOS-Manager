@@ -77,9 +77,12 @@
                     <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Margin="0,0,5,0" Click="Logs_Click" ToolTip="运行日志">
                         <TextBlock Text="📜" FontSize="11" />
                     </Button>
-                    <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Click="Settings_Click" ToolTip="偏好设置">
-                        <TextBlock Text="⚙" FontSize="12" />
-                    </Button>
+                    <Grid>
+                        <Button Width="26" Height="26" Background="#222838" BorderThickness="0" Foreground="#A0AEC0" Cursor="Hand" Click="Settings_Click" ToolTip="偏好设置">
+                            <TextBlock Text="⚙" FontSize="12" />
+                        </Button>
+                        <Ellipse x:Name="UpdateBadgeDot" Width="7" Height="7" Fill="#10B981" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,1,0" Visibility="Collapsed" IsHitTestVisible="False" />
+                    </Grid>
                 </StackPanel>
             </Grid>
 
@@ -116,7 +119,12 @@
                                 <TextBlock x:Name="BootTimerText" Text="00:00" FontSize="9.5" FontWeight="SemiBold" FontFamily="Consolas" Foreground="#F59E0B" />
                             </Border>
                         </StackPanel>
-                        <TextBlock x:Name="StatusSubtitle" Text="就绪 · 点击启动" FontSize="11" Foreground="#9CA3AF" Margin="21,2,0,0" Cursor="Hand" MouseLeftButtonDown="Subtitle_Click" />
+                        <StackPanel Orientation="Horizontal" Margin="21,3,0,0">
+                            <TextBlock x:Name="StatusSubtitle" Text="就绪 · 点击启动" FontSize="11" Foreground="#9CA3AF" Cursor="Hand" MouseLeftButtonDown="Subtitle_Click" VerticalAlignment="Center" />
+                            <Border x:Name="CopyAddressBadge" Background="#1A2433" BorderBrush="#2D3B4F" BorderThickness="1" CornerRadius="4" Padding="4,1" Margin="6,0,0,0" Cursor="Hand" MouseLeftButtonDown="CopyAddress_Click" ToolTip="点击复制访问地址" Visibility="Collapsed">
+                                <TextBlock x:Name="CopyAddressText" Text="📋 复制" FontSize="9" Foreground="#9CA3AF" />
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

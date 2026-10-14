@@ -256,7 +256,7 @@ public struct AboutFnOSWindowView: View {
 
                     // 版本与更新状态组合胶囊 (开阔无挤压)
                     HStack(spacing: 8) {
-                        Text("Version 1.0.3 · Apple Silicon")
+                        Text("Version 1.0.4 · Apple Silicon")
                             .font(.system(size: 10, weight: .medium, design: .monospaced))
                             .foregroundColor(Color(red: 0.38, green: 0.78, blue: 1.0))
                             .padding(.horizontal, 9)

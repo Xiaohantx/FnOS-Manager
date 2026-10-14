@@ -29,21 +29,21 @@ jobs:
         shell: pwsh
         run: |
           dotnet publish windows/src/FnOSManager.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win-x64
-          Compress-Archive -Path publish/win-x64/* -DestinationPath FnOS-Manager-1.0.3-windows-x64.zip
+          Compress-Archive -Path publish/win-x64/* -DestinationPath FnOS-Manager-1.0.4-windows-x64.zip
 
       - name: Build & Publish Windows ARM64 Single File
         shell: pwsh
         run: |
           dotnet publish windows/src/FnOSManager.csproj -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -o publish/win-arm64
-          Compress-Archive -Path publish/win-arm64/* -DestinationPath FnOS-Manager-1.0.3-windows-arm64.zip
+          Compress-Archive -Path publish/win-arm64/* -DestinationPath FnOS-Manager-1.0.4-windows-arm64.zip
 
       - name: Upload Windows Binaries
         uses: actions/upload-artifact@v4
         with:
           name: windows-binaries
           path: |
-            FnOS-Manager-1.0.3-windows-x64.zip
-            FnOS-Manager-1.0.3-windows-arm64.zip
+            FnOS-Manager-1.0.4-windows-x64.zip
+            FnOS-Manager-1.0.4-windows-arm64.zip
 
   publish:
     name: Publish GitHub Release (macOS & Windows)
@@ -63,8 +63,8 @@ jobs:
         id: meta
         run: |
           ls -la ./artifacts-win || true
-          TAG="v1.0.3"
-          VERSION="1.0.3"
+          TAG="v1.0.4"
+          VERSION="1.0.4"
           DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
           WIN_X64="./artifacts-win/FnOS-Manager-${VERSION}-windows-x64.zip"
           WIN_ARM64="./artifacts-win/FnOS-Manager-${VERSION}-windows-arm64.zip"
@@ -78,16 +78,17 @@ jobs:
 
           **FnOS Manager** 是一款专为 **macOS (Apple Silicon)** 与 **Windows 10/11 (x86_64 / ARM64)** 打造的 **飞牛私有云 (fnOS) 原生桌面虚拟化管理器**。
 
-          ### 🌟 本次 v1.0.3 更新内容
-          1. 🔔 **全平台在线版本更新检测**：
-             - macOS 与 Windows 客户端的「关于」窗口均内置在线版本探测引擎（优先 GitHub REST API，备用 Releases HTML 探测）。
-             - 支持自动检测与手动点击刷新，有新版本时高亮提示并支持一键直达官方 Releases 页面下载。
-          2. 📊 **macOS 内核级内存采样精细化**：
-             - 接入 Darwin \`proc_pidinfo(PROC_PIDTASKINFO)\` 深度追踪 \`com.apple.Virtualization.VirtualMachine.xpc\` 隔离守护进程。
-             - 彻底解决此前仅采样外壳 App 造成的 0.1 GB 内存假象，精准呈现 ~1.0 GB 真实物理常驻内存与动态 CPU 负载。
-          3. 🪟 **Windows 平台双架构 (x64 / ARM64) 正式构建同步**：
-             - 修复缺失的管理员 UAC 清单与安全引导兼容性，提供与 macOS 完全一致的卡片式沉浸控制体验。
-             - 自适应下载官方 x86_64 与 ARM64 安装镜像。
+          ### 🌟 本次 v1.0.4 核心优化
+          1. 🔔 **启动静默检查更新与主界面徽标提醒**：
+             - 优化冷启动检查策略（12 小时智能节流防 GitHub 限流），发现新版本时在主界面偏好设置右上角常驻绿色指示徽标。
+          2. 🚀 **新手首次未下载镜像一键引导交互**：
+             - 未检测到官方镜像且点击启动时，不再报错停摆，而是自动弹出模态引导窗口，点击「一键获取镜像」即可在后台全自动下载官方镜像并验证 MD5，将繁琐流程缩短至 1 步。
+          3. 📋 **访问地址与 IP 一键快捷复制**：
+             - 状态横幅新增「复制」快捷胶囊与单点气泡反馈，一键复制控制台完整 URL 或 IP 地址到剪贴板，极大方便手机、iPad、TV 跨设备访问。
+          4. 🪟 **Windows 端 Hyper-V 虚拟机物理内存穿透采样**：
+             - 深度穿透 Hyper-V \`vmwp.exe\`（Virtual Machine Worker Process）采样物理常驻工作集（WorkingSet64）与多核 CPU 时间，彻底消除 0.1 GB 内存假象。
+          5. 🛡️ **外置移动硬盘与存储健康前置预检**：
+             - 启动前严密检查目标存储卷是否在线、是否为只读或剩余可用空间不足（< 3.0 GB），有效防御移动硬盘拔出或磁盘爆满导致的损坏异常。
 
           ---
 
@@ -109,8 +110,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v1.0.3"
-          VERSION="1.0.3"
+          TAG="v1.0.4"
+          VERSION="1.0.4"
           DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
           WIN_X64="./artifacts-win/FnOS-Manager-${VERSION}-windows-x64.zip"
           WIN_ARM64="./artifacts-win/FnOS-Manager-${VERSION}-windows-arm64.zip"

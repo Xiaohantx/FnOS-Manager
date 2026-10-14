@@ -19,6 +19,7 @@ namespace FnOSManager
 
             _vm.StatusChanged += OnStatusChanged;
             _metrics.MetricsUpdated += OnMetricsUpdated;
+            UpdateCheckerService.Shared.StatusChanged += () => Dispatcher.Invoke(UpdateUI);
 
             _uiTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _uiTimer.Tick += (s, e) =>
@@ -29,6 +30,9 @@ namespace FnOSManager
                 }
             };
             _uiTimer.Start();
+
+            // 启动时后台静默检查更新 (带 12 小时节流)
+            _ = UpdateCheckerService.Shared.CheckInBackgroundOnLaunchAsync();
 
             UpdateUI();
         }
@@ -87,11 +91,26 @@ namespace FnOSManager
             catch { }
         }
 
+        private async void CopyAddress_Click(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                var addr = !string.IsNullOrEmpty(_vm.CurrentIP)
+                    ? $"http://{_vm.CurrentIP}:{_vm.Settings.WebPort}"
+                    : $"http://{_vm.Settings.CustomDomainPrefix}.fnos";
+                Clipboard.SetText(addr);
+                CopyAddressText.Text = "✓ 已复制";
+                await Task.Delay(1500);
+                CopyAddressText.Text = "📋 复制";
+            }
+            catch { }
+        }
+
         private void Subtitle_Click(object sender, MouseButtonEventArgs e)
         {
             if (_vm.Status == VMStatus.Running)
             {
-                OpenConsole_Click(sender, e);
+                CopyAddress_Click(sender, e);
             }
         }
 
@@ -149,6 +168,7 @@ namespace FnOSManager
 
         private void UpdateUI()
         {
+            UpdateBadgeDot.Visibility = UpdateCheckerService.Shared.HasNewVersionBadge ? Visibility.Visible : Visibility.Collapsed;
             StatusTitle.Text = _vm.StatusText;
             switch (_vm.Status)
             {
@@ -156,6 +176,7 @@ namespace FnOSManager
                     StatusDot.Visibility = Visibility.Visible;
                     SpinningRing.Visibility = Visibility.Collapsed;
                     BootTimerBadge.Visibility = Visibility.Collapsed;
+                    CopyAddressBadge.Visibility = Visibility.Visible;
                     StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
                     StatusSubtitle.Text = $"{_vm.Settings.CustomDomainPrefix}.fnos · {_vm.CurrentIP}";
                     MainActionButton.Content = "■ 停止系统";
@@ -172,6 +193,7 @@ namespace FnOSManager
                     StatusDot.Visibility = Visibility.Collapsed;
                     SpinningRing.Visibility = Visibility.Visible;
                     BootTimerBadge.Visibility = Visibility.Visible;
+                    CopyAddressBadge.Visibility = Visibility.Collapsed;
                     BootTimerText.Text = string.Format("{0:D2}:{1:D2}", _vm.BootingElapsedSeconds / 60, _vm.BootingElapsedSeconds % 60);
                     StatusSubtitle.Text = _vm.LatestLogLine;
                     MainActionButton.Content = _vm.Status == VMStatus.Installing ? "⏳ 安装引导中..." : "⏳ 启动中...";
@@ -187,6 +209,7 @@ namespace FnOSManager
                     StatusDot.Visibility = Visibility.Collapsed;
                     SpinningRing.Visibility = Visibility.Visible;
                     BootTimerBadge.Visibility = Visibility.Collapsed;
+                    CopyAddressBadge.Visibility = Visibility.Collapsed;
                     StatusSubtitle.Text = "正在释放资源并关闭...";
                     MainActionButton.Content = "⏳ 正在关机...";
                     MainActionButton.Background = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
@@ -201,6 +224,7 @@ namespace FnOSManager
                     StatusDot.Visibility = Visibility.Visible;
                     SpinningRing.Visibility = Visibility.Collapsed;
                     BootTimerBadge.Visibility = Visibility.Collapsed;
+                    CopyAddressBadge.Visibility = Visibility.Collapsed;
                     StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80));
                     StatusSubtitle.Text = "就绪 · 点击启动";
                     MainActionButton.Content = "▶ 启动系统";
