@@ -85,7 +85,7 @@ jobs:
           [FnOS-Manager-${VERSION}-arm64.dmg](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-arm64.dmg)
 
           ### SHA-256
-          - FnOS-Manager-${VERSION}-arm64.dmg: `${DMG_HASH}`
+          - FnOS-Manager-${VERSION}-arm64.dmg: ${DMG_HASH}
           EOF
 
       - name: Publish GitHub Release
