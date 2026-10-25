@@ -48,7 +48,7 @@ public class NetworkMonitor {
             let name = String(cString: interface.pointee.ifa_name)
             guard name.hasPrefix("en"), Int32(interface.pointee.ifa_flags) & IFF_UP != 0 else { continue }
 
-            var rawAddress = socketAddress.assumingMemoryBound(to: sockaddr_in.self).pointee.sin_addr
+            var rawAddress = socketAddress.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee.sin_addr }
             var addressBuffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
             let converted = addressBuffer.withUnsafeMutableBufferPointer { buffer in
                 inet_ntop(AF_INET, &rawAddress, buffer.baseAddress, socklen_t(buffer.count))
