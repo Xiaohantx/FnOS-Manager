@@ -20,6 +20,70 @@ public class NetworkMonitor {
 
     private init() {}
 
+    /// The host Mac's LAN address, used for links that other devices can reach.
+    public var localLANIPAddress: String? {
+        let addresses = hostIPv4AddressesByInterface()
+        if let interface = defaultRouteInterface(), interface.hasPrefix("en"),
+           let address = addresses[interface] {
+            return address
+        }
+        if let address = addresses["en0"] {
+            return address
+        }
+        return addresses.sorted { $0.key < $1.key }.first?.value
+    }
+
+    private func hostIPv4AddressesByInterface() -> [String: String] {
+        var ifap: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifap) == 0, let first = ifap else { return [:] }
+        defer { freeifaddrs(ifap) }
+
+        var addresses: [String: String] = [:]
+        var current: UnsafeMutablePointer<ifaddrs>? = first
+        while let interface = current {
+            defer { current = interface.pointee.ifa_next }
+            guard let socketAddress = interface.pointee.ifa_addr,
+                  socketAddress.pointee.sa_family == UInt8(AF_INET) else { continue }
+
+            let name = String(cString: interface.pointee.ifa_name)
+            guard name.hasPrefix("en"), Int32(interface.pointee.ifa_flags) & IFF_UP != 0 else { continue }
+
+            var rawAddress = socketAddress.assumingMemoryBound(to: sockaddr_in.self).pointee.sin_addr
+            var addressBuffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+            let converted = addressBuffer.withUnsafeMutableBufferPointer { buffer in
+                inet_ntop(AF_INET, &rawAddress, buffer.baseAddress, socklen_t(buffer.count))
+            }
+            guard converted != nil else { continue }
+
+            let address = String(cString: addressBuffer)
+            guard !address.hasPrefix("127."), !address.hasPrefix("169.254."), address != "0.0.0.0" else { continue }
+            addresses[name] = address
+        }
+        return addresses
+    }
+
+    private func defaultRouteInterface() -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/sbin/route")
+        process.arguments = ["-n", "get", "default"]
+        let output = Pipe()
+        process.standardOutput = output
+
+        do {
+            try process.run()
+            let data = output.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0,
+                  let text = String(data: data, encoding: .utf8),
+                  let line = text.components(separatedBy: .newlines).first(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("interface:") }) else {
+                return nil
+            }
+            return line.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespaces)
+        } catch {
+            return nil
+        }
+    }
+
     public func startMonitoring(targetMAC: VZMACAddress, targetPort: Int = 5666, onFound: @escaping (String) -> Void, onPortOpen: @escaping (Bool) -> Void) {
         stopMonitoring()
 

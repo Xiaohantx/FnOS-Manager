@@ -244,7 +244,7 @@ public struct MiniCardView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .help("点击复制访问地址")
+                        .help("点击复制本机局域网 IP")
                     }
                 }
                 .contentShape(Rectangle())
@@ -644,7 +644,17 @@ public struct MiniCardView: View {
     }
 
     private func copyAddressToClipboard() {
-        let copyText = vmManager.webConsoleURL?.absoluteString ?? (vmManager.currentIP.map { "http://\($0):\(vmManager.settings.webPort)" } ?? "http://nas.fnos")
+        guard let copyText = NetworkMonitor.shared.localLANIPAddress else {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                copyToastText = "未找到 IP"
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    copyToastText = nil
+                }
+            }
+            return
+        }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(copyText, forType: .string)
         withAnimation(.easeInOut(duration: 0.15)) {
