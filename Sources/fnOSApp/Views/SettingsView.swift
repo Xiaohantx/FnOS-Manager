@@ -64,9 +64,19 @@ public struct SettingsView: View {
                     }
                 }
 
-                Toggle("挂载 ISO 安装镜像", isOn: $attachISO)
+                Toggle("新建系统盘时挂载 ISO 安装镜像", isOn: $attachISO)
                 Toggle("标记为已安装系统", isOn: $isInstalled)
-                Text("首次安装时请勾选挂载 ISO；系统安装完成后，可取消勾选 ISO 以便直接从硬盘引导。")
+                Text("已有系统盘时，启动会优先从原有磁盘引导。需要重装时，请使用下方操作并确认格式化。")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+
+                Button("格式化重装系统…", role: .destructive) {
+                    saveChanges()
+                    vmManager.startVM(forceInstallMode: true)
+                }
+                .disabled(vmManager.status != .stopped && vmManager.status != .error)
+
+                Text("重装会清空系统盘 fnos_system.raw；数据盘文件不会被删除。")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }

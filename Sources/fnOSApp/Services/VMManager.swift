@@ -146,12 +146,13 @@ public class VMManager: NSObject, ObservableObject {
 
     public var needsISODownloadToBoot: Bool {
         let diskURL = URL(fileURLWithPath: settings.vmDataDirectory).appendingPathComponent("fnos_system.raw")
-        let actuallyInstalled = storageService.isDiskInstalled(url: diskURL)
-        if !actuallyInstalled {
-            ISOFetcherService.shared.refreshBuiltInISOState()
-            return !ISOFetcherService.shared.hasBuiltInISO && !FileManager.default.fileExists(atPath: settings.isoPath)
+        // An existing system disk should be tried first, even when its install state cannot be detected.
+        if FileManager.default.fileExists(atPath: diskURL.path) {
+            return false
         }
-        return false
+
+        ISOFetcherService.shared.refreshBuiltInISOState()
+        return !ISOFetcherService.shared.hasBuiltInISO && !FileManager.default.fileExists(atPath: settings.isoPath)
     }
 
     public func startVM(forceInstallMode: Bool = false) {
@@ -193,21 +194,22 @@ public class VMManager: NSObject, ObservableObject {
                     settings.save()
                 }
 
-                var shouldAttachISO = forceInstallMode || (!actuallyInstalled) || (settings.attachISO && ISOFetcherService.shared.hasBuiltInISO)
-                var reinstallConfirmed = false
-                if systemDiskAlreadyExisted && shouldAttachISO && !forceInstallMode {
+                // Normal startup always boots an existing system disk. A stale attachISO preference
+                // must never turn a software update into an automatic reinstall.
+                let shouldAttachISO = forceInstallMode
+                    || (!systemDiskAlreadyExisted && (!actuallyInstalled || (settings.attachISO && ISOFetcherService.shared.hasBuiltInISO)))
+
+                if systemDiskAlreadyExisted && shouldAttachISO {
                     self.status = .stopped
-                    self.addSystemLog("检测到已有系统盘但无法确认安装状态，已暂停自动重装并等待用户确认", tag: "STORAGE", level: .warning)
+                    self.addSystemLog("已请求重装现有系统盘，等待用户确认", tag: "STORAGE", level: .warning)
                     guard confirmReinstallOfExistingSystemDisk() else {
                         self.addSystemLog("用户取消重装，保留现有系统盘文件", tag: "STORAGE", level: .info)
                         return
                     }
-                    reinstallConfirmed = true
-                    
                     self.addSystemLog("用户已确认重装现有系统盘", tag: "INSTALL", level: .warning)
                 }
 
-                if !actuallyInstalled || forceInstallMode || reinstallConfirmed {
+                if shouldAttachISO {
                     settings.isInstalled = false
                     settings.attachISO = true
                     settings.save()
@@ -228,7 +230,7 @@ public class VMManager: NSObject, ObservableObject {
                 self.status = shouldAttachISO ? .installing : .starting
                 self.startBootProgressTimer(isInstallMode: shouldAttachISO)
 
-                let efiStore = try storageService.ensureEFIVariableStore(directory: vmDir, recreate: !actuallyInstalled)
+                let efiStore = try storageService.ensureEFIVariableStore(directory: vmDir, recreate: forceInstallMode || !systemDiskAlreadyExisted)
                 let machineID = storageService.ensureMachineIdentifier(directory: vmDir)
                 let mac = storageService.ensureMACAddress(directory: vmDir)
                 self.targetMAC = mac

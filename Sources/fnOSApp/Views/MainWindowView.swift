@@ -194,7 +194,7 @@ public struct MainWindowView: View {
                     .buttonStyle(.plain)
                 } else {
                     Button(action: {
-                        if !FileManager.default.fileExists(atPath: vmManager.settings.isoPath) && !vmManager.settings.isInstalled {
+                        if vmManager.needsISODownloadToBoot {
                             selectISOFile()
                         } else {
                             vmManager.startVM()
