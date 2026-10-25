@@ -11,6 +11,7 @@ public struct SettingsView: View {
     @State private var attachISO: Bool = true
     @State private var isInstalled: Bool = false
     @State private var webPort: Int = 5666
+    @State private var lanForwardedPortsText: String = "3000"
     @State private var savedAlert = false
 
     private let maxCPUs = ProcessInfo.processInfo.activeProcessorCount
@@ -89,6 +90,15 @@ public struct SettingsView: View {
                         .frame(width: 80)
                         .textFieldStyle(.roundedBorder)
                 }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("其他局域网应用端口:")
+                    TextField("3000, 8080", text: $lanForwardedPortsText)
+                        .textFieldStyle(.roundedBorder)
+                    Text("逗号分隔。开启局域网访问后，这些端口会转发到虚拟机中的同端口。默认包含 3000。")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section {
@@ -134,6 +144,7 @@ public struct SettingsView: View {
         attachISO = s.attachISO
         isInstalled = s.isInstalled
         webPort = s.webPort
+        lanForwardedPortsText = s.lanForwardedPorts.map(String.init).joined(separator: ", ")
     }
 
     private func saveChanges() {
@@ -146,7 +157,16 @@ public struct SettingsView: View {
         s.attachISO = attachISO
         s.isInstalled = isInstalled
         s.webPort = webPort
+        s.lanForwardedPorts = parseForwardedPorts(lanForwardedPortsText)
         vmManager.updateSettings(s)
+    }
+
+    private func parseForwardedPorts(_ text: String) -> [Int] {
+        let separators = CharacterSet(charactersIn: ",，;； \n\t")
+        return Array(Set(text.components(separatedBy: separators)
+            .compactMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            .filter { (1...65535).contains($0) && $0 != webPort }))
+            .sorted()
     }
 
     private func selectISOFile() {

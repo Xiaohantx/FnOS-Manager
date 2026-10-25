@@ -6,9 +6,17 @@ import Darwin
 public class NetworkMonitor {
     public static let shared = NetworkMonitor()
 
+    private struct AdditionalForwarder {
+        let listenFD: Int32
+        let targetHost: String
+        let bindHost: String
+        let generation: UInt64
+    }
+
     private var timer: Timer?
     private var isSearching = false
     private var lanAccessEnabled = false
+    private var configuredForwardingPorts: [Int] = [3000]
 
     private init() {}
 
@@ -35,9 +43,13 @@ public class NetworkMonitor {
                     DispatchQueue.main.async {
                         onFound(ip)
                     }
-                    let isOpen = self.checkTCPPortDirect(host: ip, port: targetPort, timeout: 0.6)
-                        || self.checkTCPPortDirect(host: ip, port: 5666, timeout: 0.6)
-                        || self.checkTCPPortDirect(host: ip, port: 80, timeout: 0.6)
+                    var candidatePorts = [targetPort, 5666, 80]
+                    candidatePorts.append(contentsOf: self.configuredPortsSnapshot())
+                    var checkedPorts = Set<Int>()
+                    let isOpen = candidatePorts.contains { port in
+                        guard checkedPorts.insert(port).inserted else { return false }
+                        return self.checkTCPPortDirect(host: ip, port: port, timeout: 0.6)
+                    }
                     if isOpen {
                         failedChecks = 0
                     } else {
@@ -77,10 +89,25 @@ public class NetworkMonitor {
         lanAccessEnabled = enabled
         let targetHost = forwardedTargetHost
         let targetPort = forwardedPort
+        let additionalPorts = configuredForwardingPorts
         forwarderLock.unlock()
 
         if !targetHost.isEmpty, targetPort > 0 {
             ensureLocalForwarder(targetHost: targetHost, port: targetPort)
+            ensureAdditionalForwarders(targetHost: targetHost, consolePort: targetPort, ports: additionalPorts)
+        }
+    }
+
+    public func setAdditionalForwardingPorts(_ ports: [Int]) {
+        let normalizedPorts = Array(Set(ports.filter { (1...65535).contains($0) })).sorted()
+        forwarderLock.lock()
+        configuredForwardingPorts = normalizedPorts
+        let targetHost = forwardedTargetHost
+        let consolePort = forwardedPort
+        forwarderLock.unlock()
+
+        if !targetHost.isEmpty, consolePort > 0 {
+            ensureAdditionalForwarders(targetHost: targetHost, consolePort: consolePort, ports: normalizedPorts)
         }
     }
 
@@ -188,6 +215,7 @@ public class NetworkMonitor {
 
         if connectResult == 0 {
             ensureLocalForwarder(targetHost: host, port: port)
+            ensureAdditionalForwarders(targetHost: host, consolePort: port, ports: configuredPortsSnapshot())
             return true
         }
         guard errno == EINPROGRESS else {
@@ -205,6 +233,7 @@ public class NetworkMonitor {
         var len = socklen_t(MemoryLayout<Int32>.size)
         if getsockopt(fd, SOL_SOCKET, SO_ERROR, &soError, &len) == 0 && soError == 0 {
             ensureLocalForwarder(targetHost: host, port: port)
+            ensureAdditionalForwarders(targetHost: host, consolePort: port, ports: configuredPortsSnapshot())
             return true
         }
         return false
@@ -216,7 +245,94 @@ public class NetworkMonitor {
     private var forwardedPort: Int = 0
     private var forwarderBindHost: String = ""
     private var forwarderGeneration: UInt64 = 0
+    private var additionalForwarders: [Int: AdditionalForwarder] = [:]
+    private var additionalForwarderGeneration: UInt64 = 0
     private let forwarderLock = NSLock()
+
+    private func configuredPortsSnapshot() -> [Int] {
+        forwarderLock.lock()
+        defer { forwarderLock.unlock() }
+        return configuredForwardingPorts
+    }
+
+    private func ensureAdditionalForwarders(targetHost: String, consolePort: Int, ports: [Int]) {
+        let desiredPorts = Set(ports.filter { (1...65535).contains($0) && $0 != consolePort })
+        var listenersToStart: [(port: Int, entry: AdditionalForwarder)] = []
+
+        forwarderLock.lock()
+        let bindHost = lanAccessEnabled ? "0.0.0.0" : "127.0.0.1"
+        for (port, entry) in Array(additionalForwarders) {
+            guard !desiredPorts.contains(port) || entry.targetHost != targetHost || entry.bindHost != bindHost else { continue }
+            _ = shutdown(entry.listenFD, SHUT_RDWR)
+            close(entry.listenFD)
+            additionalForwarders.removeValue(forKey: port)
+        }
+
+        for port in desiredPorts where additionalForwarders[port] == nil {
+            let listenFD = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+            guard listenFD >= 0 else { continue }
+
+            var reuse: Int32 = 1
+            _ = setsockopt(listenFD, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))
+
+            var addr = sockaddr_in()
+            addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+            addr.sin_family = sa_family_t(AF_INET)
+            addr.sin_port = in_port_t(UInt16(port).bigEndian)
+            guard inet_pton(AF_INET, bindHost, &addr.sin_addr) == 1 else {
+                close(listenFD)
+                continue
+            }
+
+            let bindResult = withUnsafePointer(to: &addr) { ptr in
+                ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
+                    bind(listenFD, sockPtr, socklen_t(MemoryLayout<sockaddr_in>.size))
+                }
+            }
+            guard bindResult == 0, listen(listenFD, 32) == 0 else {
+                NSLog("[FnOS Manager] 无法监听附加端口 %d：%s", port, strerror(errno))
+                close(listenFD)
+                continue
+            }
+
+            additionalForwarderGeneration &+= 1
+            let entry = AdditionalForwarder(
+                listenFD: listenFD,
+                targetHost: targetHost,
+                bindHost: bindHost,
+                generation: additionalForwarderGeneration
+            )
+            additionalForwarders[port] = entry
+            listenersToStart.append((port, entry))
+        }
+        forwarderLock.unlock()
+
+        for (port, entry) in listenersToStart {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                while let self = self,
+                      self.isCurrentAdditionalForwarder(port: port, entry: entry) {
+                    var clientAddr = sockaddr_in()
+                    var clientLen = socklen_t(MemoryLayout<sockaddr_in>.size)
+                    let clientFD = withUnsafeMutablePointer(to: &clientAddr) { ptr in
+                        ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
+                            accept(entry.listenFD, sockPtr, &clientLen)
+                        }
+                    }
+                    guard clientFD >= 0 else { break }
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        Self.bridgeClientConnection(clientFD: clientFD, targetHost: entry.targetHost, targetPort: port)
+                    }
+                }
+            }
+        }
+    }
+
+    private func isCurrentAdditionalForwarder(port: Int, entry: AdditionalForwarder) -> Bool {
+        forwarderLock.lock()
+        defer { forwarderLock.unlock() }
+        guard let current = additionalForwarders[port] else { return false }
+        return current.listenFD == entry.listenFD && current.generation == entry.generation
+    }
 
     public func ensureLocalForwarder(targetHost: String, port: Int) {
         forwarderLock.lock()
@@ -315,6 +431,11 @@ public class NetworkMonitor {
             _ = shutdown(listenFD, SHUT_RDWR)
             close(listenFD)
         }
+        for entry in additionalForwarders.values {
+            _ = shutdown(entry.listenFD, SHUT_RDWR)
+            close(entry.listenFD)
+        }
+        additionalForwarders.removeAll()
         forwardedTargetHost = ""
         forwardedPort = 0
         forwarderBindHost = ""

@@ -17,6 +17,7 @@ public struct VMSettings: Codable, Equatable {
     public var customDomainPrefix: String
     public var isCustomDomainEnabled: Bool
     public var autoStartOnLogin: Bool
+    public var lanForwardedPorts: [Int]
     // Persisted under the legacy key for compatibility with existing settings.
     public var bridgeNetworkMode: Bool
     public var lanAccessEnabled: Bool {
@@ -41,7 +42,8 @@ public struct VMSettings: Codable, Equatable {
         customDomainPrefix: String = "nas",
         isCustomDomainEnabled: Bool = true,
         autoStartOnLogin: Bool = false,
-        bridgeNetworkMode: Bool = true
+        bridgeNetworkMode: Bool = true,
+        lanForwardedPorts: [Int] = [3000]
     ) {
         self.cpuCount = cpuCount
         self.memorySizeGB = memorySizeGB
@@ -59,11 +61,12 @@ public struct VMSettings: Codable, Equatable {
         self.customDomainPrefix = customDomainPrefix
         self.isCustomDomainEnabled = isCustomDomainEnabled
         self.autoStartOnLogin = autoStartOnLogin
+        self.lanForwardedPorts = lanForwardedPorts
         self.bridgeNetworkMode = bridgeNetworkMode
     }
 
     enum CodingKeys: String, CodingKey {
-        case cpuCount, memorySizeGB, diskSizeGB, dataDiskSizeGB, isoPath, vmDataDirectory, dataStorageDirectory, attachISO, isInstalled, webPort, sharedFolders, language, dynamicOptimization, customDomainPrefix, isCustomDomainEnabled, autoStartOnLogin, bridgeNetworkMode
+        case cpuCount, memorySizeGB, diskSizeGB, dataDiskSizeGB, isoPath, vmDataDirectory, dataStorageDirectory, attachISO, isInstalled, webPort, sharedFolders, language, dynamicOptimization, customDomainPrefix, isCustomDomainEnabled, autoStartOnLogin, bridgeNetworkMode, lanForwardedPorts
     }
 
     public init(from decoder: Decoder) throws {
@@ -86,6 +89,7 @@ public struct VMSettings: Codable, Equatable {
         customDomainPrefix = try container.decodeIfPresent(String.self, forKey: .customDomainPrefix) ?? "nas"
         isCustomDomainEnabled = try container.decodeIfPresent(Bool.self, forKey: .isCustomDomainEnabled) ?? true
         autoStartOnLogin = try container.decodeIfPresent(Bool.self, forKey: .autoStartOnLogin) ?? false
+        lanForwardedPorts = try container.decodeIfPresent([Int].self, forKey: .lanForwardedPorts) ?? [3000]
         bridgeNetworkMode = try container.decodeIfPresent(Bool.self, forKey: .bridgeNetworkMode) ?? true
     }
 

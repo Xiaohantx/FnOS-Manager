@@ -63,6 +63,7 @@ public class VMManager: NSObject, ObservableObject {
         self.settings = newSettings
         self.settings.save()
         networkMonitor.setLANAccessEnabled(newSettings.lanAccessEnabled)
+        networkMonitor.setAdditionalForwardingPorts(newSettings.lanForwardedPorts)
     }
 
     public func addSystemLog(_ message: String, tag: String = "SYSTEM", level: VMLogEntry.Level = .info) {
@@ -627,6 +628,7 @@ public class VMManager: NSObject, ObservableObject {
 
     private func startNetworkMonitoring(targetMAC: VZMACAddress) {
         networkMonitor.setLANAccessEnabled(settings.lanAccessEnabled)
+        networkMonitor.setAdditionalForwardingPorts(settings.lanForwardedPorts)
         networkMonitor.startMonitoring(targetMAC: targetMAC, targetPort: settings.webPort) { [weak self] ip in
             Task { @MainActor in
                 guard let self = self else { return }

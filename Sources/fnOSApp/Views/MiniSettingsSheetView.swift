@@ -493,6 +493,7 @@ public struct MiniSettingsSheetView: View {
     @State private var autoStart: Bool = false
     @State private var dynamicBallooning: Bool = true
     @State private var lanAccessEnabled: Bool = true
+    @State private var lanForwardedPortsText: String = "3000"
     @State private var dataStorageDirectory: String = ""
     @State private var dataDiskSizeGB: Int = 256
 
@@ -505,6 +506,7 @@ public struct MiniSettingsSheetView: View {
         _autoStart = State(initialValue: vmManager.settings.autoStartOnLogin)
         _dynamicBallooning = State(initialValue: vmManager.settings.dynamicOptimization)
         _lanAccessEnabled = State(initialValue: vmManager.settings.lanAccessEnabled)
+        _lanForwardedPortsText = State(initialValue: vmManager.settings.lanForwardedPorts.map(String.init).joined(separator: ", "))
         _dataStorageDirectory = State(initialValue: vmManager.settings.dataStorageDirectory)
         _dataDiskSizeGB = State(initialValue: vmManager.settings.dataDiskSizeGB)
     }
@@ -570,9 +572,26 @@ public struct MiniSettingsSheetView: View {
 
                         settingRow(
                             title: "允许局域网设备访问",
-                            desc: "转发控制台端口；还需在路由器 DNS 中将自定义域名指向这台 Mac",
+                            desc: "转发控制台及下方应用端口；路由器 DNS 需指向这台 Mac",
                             isOn: $lanAccessEnabled
                         )
+
+                        HStack(spacing: 8) {
+                            Text("应用转发端口")
+                                .font(.system(size: 11.5, weight: .medium))
+                                .foregroundColor(Color.white.opacity(0.8))
+
+                            TextField("3000, 8080", text: $lanForwardedPortsText)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.08)))
+                        }
+                        Text("逗号分隔；默认转发 3000。访问应用时使用 Mac 局域网 IP 和对应端口。")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(Color.white.opacity(0.45))
 
                         // 自定义域名卡片
                         VStack(alignment: .leading, spacing: 9) {
@@ -1181,6 +1200,14 @@ public struct MiniSettingsSheetView: View {
         }
     }
 
+    private func parseForwardedPorts(_ text: String) -> [Int] {
+        let separators = CharacterSet(charactersIn: ",，;； \n\t")
+        return Array(Set(text.components(separatedBy: separators)
+            .compactMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            .filter { (1...65535).contains($0) && $0 != vmManager.settings.webPort }))
+            .sorted()
+    }
+
     private func saveAndDismiss() {
         var s = vmManager.settings
         let oldDataDir = s.dataStorageDirectory
@@ -1199,6 +1226,7 @@ public struct MiniSettingsSheetView: View {
         s.autoStartOnLogin = autoStart
         s.dynamicOptimization = dynamicBallooning
         s.lanAccessEnabled = lanAccessEnabled
+        s.lanForwardedPorts = parseForwardedPorts(lanForwardedPortsText)
         vmManager.updateSettings(s)
 
         if isDomainEnabled {
