@@ -194,6 +194,7 @@ public class VMManager: NSObject, ObservableObject {
                 }
 
                 var shouldAttachISO = forceInstallMode || (!actuallyInstalled) || (settings.attachISO && ISOFetcherService.shared.hasBuiltInISO)
+                var reinstallConfirmed = false
                 if systemDiskAlreadyExisted && shouldAttachISO && !forceInstallMode {
                     self.status = .stopped
                     self.addSystemLog("检测到已有系统盘但无法确认安装状态，已暂停自动重装并等待用户确认", tag: "STORAGE", level: .warning)
@@ -201,12 +202,12 @@ public class VMManager: NSObject, ObservableObject {
                         self.addSystemLog("用户取消重装，保留现有系统盘文件", tag: "STORAGE", level: .info)
                         return
                     }
-                    forceInstallMode = true
-                    shouldAttachISO = true
+                    reinstallConfirmed = true
+                    
                     self.addSystemLog("用户已确认重装现有系统盘", tag: "INSTALL", level: .warning)
                 }
 
-                if !actuallyInstalled || forceInstallMode {
+                if !actuallyInstalled || forceInstallMode || reinstallConfirmed {
                     settings.isInstalled = false
                     settings.attachISO = true
                     settings.save()
