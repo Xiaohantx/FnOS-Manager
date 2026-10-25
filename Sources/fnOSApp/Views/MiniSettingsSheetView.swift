@@ -256,7 +256,7 @@ public struct AboutFnOSWindowView: View {
 
                     // 版本与更新状态组合胶囊 (极简克制，开阔无挤压)
                     HStack(spacing: 8) {
-                        Text("v1.0.5 · ARM64")
+                        Text("v\(UpdateChecker.currentVersion) · ARM64")
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundColor(Color(red: 0.38, green: 0.78, blue: 1.0))
                             .padding(.horizontal, 8.5)
@@ -271,8 +271,10 @@ public struct AboutFnOSWindowView: View {
                             )
 
                         Button(action: {
-                            if updateChecker.updateInfo?.hasUpdate == true, let url = updateChecker.updateInfo?.releaseURL {
-                                NSWorkspace.shared.open(url)
+                            if updateChecker.updateInfo?.hasUpdate == true {
+                                Task {
+                                    await updateChecker.downloadAndInstallUpdate()
+                                }
                             } else {
                                 Task {
                                     await updateChecker.checkForUpdates(manual: true)
@@ -286,12 +288,24 @@ public struct AboutFnOSWindowView: View {
                                         .frame(width: 9, height: 9)
                                     Text("检查中...")
                                         .font(.system(size: 9.5, weight: .medium))
+                                } else if updateChecker.isDownloading {
+                                    ProgressView()
+                                        .scaleEffect(0.45)
+                                        .frame(width: 9, height: 9)
+                                    Text("正在下载更新...")
+                                        .font(.system(size: 9.5, weight: .medium))
+                                } else if updateChecker.isInstalling {
+                                    ProgressView()
+                                        .scaleEffect(0.45)
+                                        .frame(width: 9, height: 9)
+                                    Text("正在安装并重启...")
+                                        .font(.system(size: 9.5, weight: .medium))
                                 } else if updateChecker.updateInfo?.hasUpdate == true {
                                     Image(systemName: "sparkles")
                                         .font(.system(size: 8.5))
                                     Text("新版本 v\(updateChecker.updateInfo?.latestVersion ?? "")")
                                         .font(.system(size: 9.5, weight: .semibold))
-                                    Image(systemName: "arrow.up.right")
+                                    Image(systemName: "arrow.down.circle")
                                         .font(.system(size: 7.5, weight: .bold))
                                 } else {
                                     Image(systemName: "checkmark.circle.fill")
