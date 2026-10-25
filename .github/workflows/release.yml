@@ -2,126 +2,108 @@ name: Build and Publish Release
 
 on:
   push:
-    tags:
-      - 'v*'
     branches:
-      - 'main'
-      - 'release-assets'
-  workflow_dispatch:
+      - main
+    paths:
+      - CHANGELOG.md
 
 permissions:
   contents: write
 
 jobs:
-  build-windows:
-    name: Build Windows x64 & ARM64
-    runs-on: windows-latest
+  build-macos:
+    name: Build macOS ARM64 DMG
+    runs-on: macos-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8 SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Build & Publish Windows x64 Single File
-        shell: pwsh
+      - name: Read release version
+        id: meta
+        shell: bash
         run: |
-          dotnet publish windows/src/FnOSManager.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish/win-x64
-          Compress-Archive -Path publish/win-x64/* -DestinationPath FnOS-Manager-1.0.4-windows-x64.zip
+          set -euo pipefail
+          VERSION="$(awk '/^## [0-9]+\.[0-9]+\.[0-9]+/ { print $2; exit }' CHANGELOG.md)"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Could not read a semantic version from CHANGELOG.md" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Build & Publish Windows ARM64 Single File
-        shell: pwsh
-        run: |
-          dotnet publish windows/src/FnOSManager.csproj -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -o publish/win-arm64
-          Compress-Archive -Path publish/win-arm64/* -DestinationPath FnOS-Manager-1.0.4-windows-arm64.zip
+      - name: Build app and DMG
+        run: ./scripts/build_dmg.sh "${{ steps.meta.outputs.version }}"
 
-      - name: Upload Windows Binaries
+      - name: Upload macOS installer
         uses: actions/upload-artifact@v4
         with:
-          name: windows-binaries
-          path: |
-            FnOS-Manager-1.0.4-windows-x64.zip
-            FnOS-Manager-1.0.4-windows-arm64.zip
+          name: macos-installer
+          path: build/FnOS-Manager-${{ steps.meta.outputs.version }}-arm64.dmg
 
   publish:
-    name: Publish GitHub Release (macOS & Windows)
-    needs: [build-windows]
+    name: Publish macOS Release
+    needs: [build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Windows Artifacts
+      - name: Download macOS installer
         uses: actions/download-artifact@v4
         with:
-          name: windows-binaries
-          path: ./artifacts-win
+          name: macos-installer
+          path: ./artifacts
 
-      - name: Prepare Release Metadata & Notes
-        id: meta
+      - name: Prepare release notes
+        shell: bash
+        env:
+          VERSION: ${{ needs.build-macos.outputs.version }}
+          TAG: ${{ needs.build-macos.outputs.tag }}
         run: |
-          ls -la ./artifacts-win || true
-          TAG="v1.0.4"
-          VERSION="1.0.4"
-          DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
-          WIN_X64="./artifacts-win/FnOS-Manager-${VERSION}-windows-x64.zip"
-          WIN_ARM64="./artifacts-win/FnOS-Manager-${VERSION}-windows-arm64.zip"
+          set -euo pipefail
+          awk -v version="$VERSION" '
+            $0 ~ "^## " version "([[:space:]]|$)" { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          if [[ ! -s release_notes.md ]]; then
+            echo "No changelog section found for $VERSION" >&2
+            exit 1
+          fi
 
+          DMG_FILE="./artifacts/FnOS-Manager-${VERSION}-arm64.dmg"
+          test -f "$DMG_FILE"
           DMG_HASH=$(sha256sum "$DMG_FILE" | awk '{print $1}')
-          WIN_X64_HASH=$(sha256sum "$WIN_X64" | awk '{print $1}')
-          WIN_ARM64_HASH=$(sha256sum "$WIN_ARM64" | awk '{print $1}')
-
-          cat <<EOF > release_notes.md
-          ## 🎉 FnOS Manager ${TAG} 全平台正式版发布
-
-          **FnOS Manager** 是一款专为 **macOS (Apple Silicon)** 与 **Windows 10/11 (x86_64 / ARM64)** 打造的 **飞牛私有云 (fnOS) 原生桌面虚拟化管理器**。
-
-          ### 🌟 本次 v1.0.4 核心优化
-          1. 🔔 **启动静默检查更新与主界面徽标提醒**：
-             - 优化冷启动检查策略（12 小时智能节流防 GitHub 限流），发现新版本时在主界面偏好设置右上角常驻绿色指示徽标。
-          2. 🚀 **新手首次未下载镜像一键引导交互**：
-             - 未检测到官方镜像且点击启动时，不再报错停摆，而是自动弹出模态引导窗口，点击「一键获取镜像」即可在后台全自动下载官方镜像并验证 MD5，将繁琐流程缩短至 1 步。
-          3. 📋 **访问地址与 IP 一键快捷复制**：
-             - 状态横幅新增「复制」快捷胶囊与单点气泡反馈，一键复制控制台完整 URL 或 IP 地址到剪贴板，极大方便手机、iPad、TV 跨设备访问。
-          4. 🪟 **Windows 端 Hyper-V 虚拟机物理内存穿透采样**：
-             - 深度穿透 Hyper-V \`vmwp.exe\`（Virtual Machine Worker Process）采样物理常驻工作集（WorkingSet64）与多核 CPU 时间，彻底消除 0.1 GB 内存假象。
-          5. 🛡️ **外置移动硬盘与存储健康前置预检**：
-             - 启动前严密检查目标存储卷是否在线、是否为只读或剩余可用空间不足（< 3.0 GB），有效防御移动硬盘拔出或磁盘爆满导致的损坏异常。
+          cat <<EOF >> release_notes.md
 
           ---
 
-          ### 📦 安装包下载
+          ### 📦 macOS ARM64 安装包
+          [FnOS-Manager-${VERSION}-arm64.dmg](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-arm64.dmg)
 
-          | 平台 / 架构 | 下载文件 | 推荐设备 |
-          | :--- | :--- | :--- |
-          | 🍏 **macOS (ARM64)** | [**FnOS-Manager-${VERSION}-arm64.dmg**](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-arm64.dmg) | Apple Silicon (M1/M2/M3/M4) Mac |
-          | 🪟 **Windows (x64)** | [**FnOS-Manager-${VERSION}-windows-x64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-windows-x64.zip) | Intel / AMD 64位 Windows 10/11 电脑 |
-          | 🪟 **Windows (ARM64)** | [**FnOS-Manager-${VERSION}-windows-arm64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/download/${TAG}/FnOS-Manager-${VERSION}-windows-arm64.zip) | 骁龙 X Elite / Surface Pro 11 / ARM 电脑 |
-
-          #### 校验值 (SHA-256)
-          - \`FnOS-Manager-${VERSION}-arm64.dmg\`: \`${DMG_HASH}\`
-          - \`FnOS-Manager-${VERSION}-windows-x64.zip\`: \`${WIN_X64_HASH}\`
-          - \`FnOS-Manager-${VERSION}-windows-arm64.zip\`: \`${WIN_ARM64_HASH}\`
+          ### SHA-256
+          - FnOS-Manager-${VERSION}-arm64.dmg: `${DMG_HASH}`
           EOF
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build-macos.outputs.version }}
+          TAG: ${{ needs.build-macos.outputs.tag }}
+          GITHUB_SHA: ${{ github.sha }}
+        shell: bash
         run: |
-          TAG="v1.0.4"
-          VERSION="1.0.4"
-          DMG_FILE="dist/FnOS-Manager-${VERSION}-arm64.dmg"
-          WIN_X64="./artifacts-win/FnOS-Manager-${VERSION}-windows-x64.zip"
-          WIN_ARM64="./artifacts-win/FnOS-Manager-${VERSION}-windows-arm64.zip"
-
+          set -euo pipefail
+          DMG_FILE="./artifacts/FnOS-Manager-${VERSION}-arm64.dmg"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$DMG_FILE" "$WIN_X64" "$WIN_ARM64" --clobber
-            gh release edit "$TAG" --title "FnOS Manager $TAG (macOS & Windows)" --notes-file release_notes.md
+            gh release upload "$TAG" "$DMG_FILE" --clobber
+            gh release edit "$TAG" --title "FnOS Manager $TAG (macOS ARM64)" --notes-file release_notes.md
           else
-            gh release create "$TAG" "$DMG_FILE" "$WIN_X64" "$WIN_ARM64" \
-              --target main \
-              --title "FnOS Manager $TAG (macOS & Windows)" \
+            gh release create "$TAG" "$DMG_FILE" \
+              --target "$GITHUB_SHA" \
+              --title "FnOS Manager $TAG (macOS ARM64)" \
               --notes-file release_notes.md
           fi

@@ -256,7 +256,7 @@ public struct AboutFnOSWindowView: View {
 
                     // 版本与更新状态组合胶囊 (极简克制，开阔无挤压)
                     HStack(spacing: 8) {
-                        Text("v1.0.4 · ARM64")
+                        Text("v1.0.5 · ARM64")
                             .font(.system(size: 10, weight: .semibold, design: .monospaced))
                             .foregroundColor(Color(red: 0.38, green: 0.78, blue: 1.0))
                             .padding(.horizontal, 8.5)
@@ -478,7 +478,7 @@ public struct MiniSettingsSheetView: View {
     @State private var isDomainEnabled: Bool = true
     @State private var autoStart: Bool = false
     @State private var dynamicBallooning: Bool = true
-    @State private var bridgeMode: Bool = true
+    @State private var lanAccessEnabled: Bool = true
     @State private var dataStorageDirectory: String = ""
     @State private var dataDiskSizeGB: Int = 256
 
@@ -490,7 +490,7 @@ public struct MiniSettingsSheetView: View {
         _isDomainEnabled = State(initialValue: vmManager.settings.isCustomDomainEnabled)
         _autoStart = State(initialValue: vmManager.settings.autoStartOnLogin)
         _dynamicBallooning = State(initialValue: vmManager.settings.dynamicOptimization)
-        _bridgeMode = State(initialValue: vmManager.settings.bridgeNetworkMode)
+        _lanAccessEnabled = State(initialValue: vmManager.settings.lanAccessEnabled)
         _dataStorageDirectory = State(initialValue: vmManager.settings.dataStorageDirectory)
         _dataDiskSizeGB = State(initialValue: vmManager.settings.dataDiskSizeGB)
     }
@@ -555,9 +555,9 @@ public struct MiniSettingsSheetView: View {
                             .foregroundColor(Color.white.opacity(0.45))
 
                         settingRow(
-                            title: "局域网独立 IP 模式",
-                            desc: "自动桥接外部物理网卡获取 IP",
-                            isOn: $bridgeMode
+                            title: "允许局域网设备访问",
+                            desc: "转发控制台端口；还需在路由器 DNS 中将自定义域名指向这台 Mac",
+                            isOn: $lanAccessEnabled
                         )
 
                         // 自定义域名卡片
@@ -580,7 +580,7 @@ public struct MiniSettingsSheetView: View {
                                             .foregroundColor(Color.white.opacity(0.6))
                                     }
 
-                                    Text("免记 IP，直接通过自定域名访问控制台")
+                                    Text("本机域名写入 /etc/hosts；其他设备需配置路由器 DNS")
                                         .font(.system(size: 10.5))
                                         .foregroundColor(Color.white.opacity(0.5))
                                 }
@@ -632,7 +632,7 @@ public struct MiniSettingsSheetView: View {
 
                                     Spacer()
 
-                                    Text("http://\(domainPrefix.trimmingCharacters(in: .whitespaces).isEmpty ? "nas" : domainPrefix).fnos")
+                                    Text("http://\(domainPrefix.trimmingCharacters(in: .whitespaces).isEmpty ? "nas" : domainPrefix).fnos:\(vmManager.settings.webPort)")
                                         .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
                                         .foregroundColor(Color.white.opacity(0.75))
                                         .lineLimit(1)
@@ -1184,7 +1184,7 @@ public struct MiniSettingsSheetView: View {
         s.isCustomDomainEnabled = isDomainEnabled
         s.autoStartOnLogin = autoStart
         s.dynamicOptimization = dynamicBallooning
-        s.bridgeNetworkMode = bridgeMode
+        s.lanAccessEnabled = lanAccessEnabled
         vmManager.updateSettings(s)
 
         if isDomainEnabled {

@@ -11,7 +11,7 @@ public struct AppUpdateInfo: Equatable {
 @MainActor
 public final class UpdateChecker: ObservableObject {
     public static let shared = UpdateChecker()
-    public static let currentVersion = "1.0.4"
+    public static let currentVersion = "1.0.5"
 
     @Published public var isChecking: Bool = false
     @Published public var updateInfo: AppUpdateInfo? = nil

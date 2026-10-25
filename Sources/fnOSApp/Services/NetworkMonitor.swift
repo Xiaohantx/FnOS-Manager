@@ -8,6 +8,7 @@ public class NetworkMonitor {
 
     private var timer: Timer?
     private var isSearching = false
+    private var lanAccessEnabled = false
 
     private init() {}
 
@@ -64,6 +65,23 @@ public class NetworkMonitor {
         timer?.invalidate()
         timer = nil
         isSearching = false
+        stopLocalForwarder()
+    }
+
+    public func setLANAccessEnabled(_ enabled: Bool) {
+        forwarderLock.lock()
+        guard lanAccessEnabled != enabled else {
+            forwarderLock.unlock()
+            return
+        }
+        lanAccessEnabled = enabled
+        let targetHost = forwardedTargetHost
+        let targetPort = forwardedPort
+        forwarderLock.unlock()
+
+        if !targetHost.isEmpty, targetPort > 0 {
+            ensureLocalForwarder(targetHost: targetHost, port: targetPort)
+        }
     }
 
     private func findIPFromARP(matchingMAC: String) -> String? {
@@ -192,25 +210,37 @@ public class NetworkMonitor {
         return false
     }
 
-    // MARK: - 本机 127.0.0.1 -> bridge100 透明端口转发器 (防止用户开启 TUN 代理导致浏览器无法直连 192.168.64.x)
+    // MARK: - Local and LAN TCP forwarding to the NAT-connected guest
     private var forwarderListenFD: Int32 = -1
     private var forwardedTargetHost: String = ""
     private var forwardedPort: Int = 0
+    private var forwarderBindHost: String = ""
+    private var forwarderGeneration: UInt64 = 0
     private let forwarderLock = NSLock()
 
     public func ensureLocalForwarder(targetHost: String, port: Int) {
         forwarderLock.lock()
         defer { forwarderLock.unlock() }
 
-        if forwarderListenFD >= 0 && forwardedTargetHost == targetHost && forwardedPort == port {
+        let bindHost = lanAccessEnabled ? "0.0.0.0" : "127.0.0.1"
+        if forwarderListenFD >= 0,
+           forwardedTargetHost == targetHost,
+           forwardedPort == port,
+           forwarderBindHost == bindHost {
             return
         }
-        forwardedTargetHost = targetHost
-        forwardedPort = port
 
         if forwarderListenFD >= 0 {
-            return
+            let oldFD = forwarderListenFD
+            forwarderListenFD = -1
+            forwarderGeneration &+= 1
+            _ = shutdown(oldFD, SHUT_RDWR)
+            close(oldFD)
         }
+
+        forwardedTargetHost = targetHost
+        forwardedPort = port
+        forwarderBindHost = bindHost
 
         let listenFD = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
         guard listenFD >= 0 else { return }
@@ -222,7 +252,10 @@ public class NetworkMonitor {
         addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
         addr.sin_family = sa_family_t(AF_INET)
         addr.sin_port = in_port_t(UInt16(port).bigEndian)
-        _ = inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr)
+        guard inet_pton(AF_INET, bindHost, &addr.sin_addr) == 1 else {
+            close(listenFD)
+            return
+        }
 
         let bindRes = withUnsafePointer(to: &addr) { ptr in
             ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
@@ -235,8 +268,10 @@ public class NetworkMonitor {
         }
 
         forwarderListenFD = listenFD
+        forwarderGeneration &+= 1
+        let generation = forwarderGeneration
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            while let self = self, self.forwarderListenFD == listenFD {
+            while let self = self, self.isCurrentForwarder(listenFD, generation: generation) {
                 var clientAddr = sockaddr_in()
                 var clientLen = socklen_t(MemoryLayout<sockaddr_in>.size)
                 let clientFD = withUnsafeMutablePointer(to: &clientAddr) { ptr in
@@ -245,13 +280,44 @@ public class NetworkMonitor {
                     }
                 }
                 guard clientFD >= 0 else { break }
-                let host = self.forwardedTargetHost
-                let dstPort = self.forwardedPort
+                guard let (host, dstPort) = self.forwarderTarget(for: listenFD, generation: generation) else {
+                    close(clientFD)
+                    continue
+                }
                 DispatchQueue.global(qos: .userInitiated).async {
                     Self.bridgeClientConnection(clientFD: clientFD, targetHost: host, targetPort: dstPort)
                 }
             }
         }
+    }
+
+    private func isCurrentForwarder(_ listenFD: Int32, generation: UInt64) -> Bool {
+        forwarderLock.lock()
+        defer { forwarderLock.unlock() }
+        return forwarderListenFD == listenFD && forwarderGeneration == generation
+    }
+
+    private func forwarderTarget(for listenFD: Int32, generation: UInt64) -> (String, Int)? {
+        forwarderLock.lock()
+        defer { forwarderLock.unlock() }
+        guard forwarderListenFD == listenFD, forwarderGeneration == generation else { return nil }
+        return (forwardedTargetHost, forwardedPort)
+    }
+
+    private func stopLocalForwarder() {
+        forwarderLock.lock()
+        defer { forwarderLock.unlock() }
+
+        if forwarderListenFD >= 0 {
+            let listenFD = forwarderListenFD
+            forwarderListenFD = -1
+            forwarderGeneration &+= 1
+            _ = shutdown(listenFD, SHUT_RDWR)
+            close(listenFD)
+        }
+        forwardedTargetHost = ""
+        forwardedPort = 0
+        forwarderBindHost = ""
     }
 
     private static func bridgeClientConnection(clientFD: Int32, targetHost: String, targetPort: Int) {

@@ -17,7 +17,12 @@ public struct VMSettings: Codable, Equatable {
     public var customDomainPrefix: String
     public var isCustomDomainEnabled: Bool
     public var autoStartOnLogin: Bool
+    // Persisted under the legacy key for compatibility with existing settings.
     public var bridgeNetworkMode: Bool
+    public var lanAccessEnabled: Bool {
+        get { bridgeNetworkMode }
+        set { bridgeNetworkMode = newValue }
+    }
 
     public init(
         cpuCount: Int,

@@ -61,6 +61,7 @@ public class VMManager: NSObject, ObservableObject {
     public func updateSettings(_ newSettings: VMSettings) {
         self.settings = newSettings
         self.settings.save()
+        networkMonitor.setLANAccessEnabled(newSettings.lanAccessEnabled)
     }
 
     public func addSystemLog(_ message: String, tag: String = "SYSTEM", level: VMLogEntry.Level = .info) {
@@ -596,6 +597,7 @@ public class VMManager: NSObject, ObservableObject {
     }
 
     private func startNetworkMonitoring(targetMAC: VZMACAddress) {
+        networkMonitor.setLANAccessEnabled(settings.lanAccessEnabled)
         networkMonitor.startMonitoring(targetMAC: targetMAC, targetPort: settings.webPort) { [weak self] ip in
             Task { @MainActor in
                 guard let self = self else { return }

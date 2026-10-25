@@ -1,11 +1,10 @@
 <div align="center">
   <img src="Resources/AppLogo.png" width="110" height="110" alt="FnOS Manager Logo" />
   <h1>FnOS Manager</h1>
-  <p><strong>飞牛私有云 (fnOS) 全平台原生虚拟化桌面管理器 (macOS &amp; Windows)</strong></p>
+  <p><strong>飞牛私有云 (fnOS) macOS Apple Silicon 原生虚拟化桌面管理器</strong></p>
   <p>
     <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-007AFF?style=flat-square&logo=apple" alt="macOS Apple Silicon" />
-    <img src="https://img.shields.io/badge/Windows-x64%20%7C%20ARM64-0078D6?style=flat-square&logo=windows" alt="Windows x64 / ARM64" />
-    <img src="https://img.shields.io/badge/Engine-Apple%20Virtualization%20%2F%20Hyper--V-34C759?style=flat-square" alt="Virtualization Engines" />
+    <img src="https://img.shields.io/badge/Engine-Apple%20Virtualization-34C759?style=flat-square" alt="Virtualization Engines" />
     <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License" />
   </p>
 </div>
@@ -14,9 +13,9 @@
 
 ## 📖 项目简介
 
-**FnOS Manager** 是一款专为 **Apple Silicon (`M1` / `M2` / `M3` / `M4`) Mac** 与 **Windows 10/11 (`x86_64` / `ARM64`) 电脑** 打造的轻量级原生 **飞牛私有云 (fnOS)** 桌面虚拟化管理器。
+**FnOS Manager** 是一款专为 **Apple Silicon (`M1` / `M2` / `M3` / `M4`) Mac** 打造的轻量级原生 **飞牛私有云 (fnOS)** 桌面虚拟化管理器。Windows 版本目前暂不可用，本次不提供 Windows 安装包。
 
-无需繁琐配置第三方虚拟机或手动引导向导 —— **FnOS Manager** 在 macOS 上基于苹果官方 `Virtualization.framework` 原生 Hypervisor，在 Windows 上基于微软原生 `Hyper-V / WHPX` 内核，提供**官方镜像一键获取、全自动无人值守安装、外置硬盘存储目录动态扩容、自适应内存调度与回垦、以及 `http://nas.fnos` 本地域名直达**的高度统一体验。
+无需繁琐配置第三方虚拟机或手动引导向导 —— **FnOS Manager** 基于苹果官方 `Virtualization.framework`，提供**官方镜像一键获取、全自动无人值守安装、外置硬盘存储目录动态扩容、自适应内存调度与回垦，以及本地域名和局域网访问**。
 
 ---
 
@@ -45,8 +44,8 @@
   - 更换存储目录时，利用 `SEEK_DATA` / `SEEK_HOLE` 极速迁移有效数据块至新位置，并自动清理旧目录文件。
 - **🎈 VirtIO 动态内存气球回收 (Ballooning)**
   - 内置 `VMPerformanceEngine`，根据虚拟系统负载与 macOS 宿主内存压力动态伸缩内存，闲时自动将物理内存交还 macOS。
-- **🌐 本地域名直达 (`http://nas.fnos`) & 代理免疫**
-  - 自动配置 `/etc/hosts` 映射与 DHCP 固定租约匹配，并自动将 `*.fnos` 写入 macOS 系统代理忽略列表（免受 Clash / Surge / TUN 代理干扰），浏览器直接输入 `http://nas.fnos` 即可访问飞牛 Web 控制台。
+- **🌐 本地域名直达与局域网访问 (`http://nas.fnos:<端口>`)**
+  - 自动配置 Mac 本机 `/etc/hosts` 映射与代理忽略列表；开启局域网访问后可转发控制台端口，并通过路由器本地 DNS 让其他设备使用自定义域名访问。
 - **📟 实时双模日志查看器**
   - 内置独立日志窗口，支持「实时日志流」与「UEFI / Linux 引导终端画面」一键切换。
 
@@ -65,9 +64,7 @@
 
 | 平台 / 架构 | 下载文件 | 推荐设备 |
 | :--- | :--- | :--- |
-| 🍏 **macOS (ARM64)** | [**FnOS-Manager-1.0.4-arm64.dmg**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | Apple Silicon (M1/M2/M3/M4) Mac |
-| 🪟 **Windows (x64)** | [**FnOS-Manager-1.0.4-windows-x64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | Intel / AMD 64位 Windows 10/11 电脑 |
-| 🪟 **Windows (ARM64)** | [**FnOS-Manager-1.0.4-windows-arm64.zip**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | 骁龙 X Elite / Surface Pro / ARM 电脑 |
+| 🍏 **macOS (ARM64)** | [**FnOS-Manager-1.0.5-arm64.dmg**](https://github.com/Xiaohantx/FnOS-Manager/releases/latest) | Apple Silicon (M1/M2/M3/M4) Mac |
 
 > **macOS 提示**：由于开源版本使用本地 Ad-hoc 签名以启用 Apple `com.apple.security.virtualization` 虚拟化权限，若首次打开提示「无法验证开发者」，可在终端执行一次 `sudo xattr -rd com.apple.quarantine "/Applications/FnOS Manager.app"`，或在「系统设置 → 隐私与安全性」中点击「仍要打开」。
 
@@ -81,22 +78,14 @@ cd FnOS-Manager
 # 一键编译、打包并自动签名生成 build/FnOS Manager.app
 ./scripts/build_app.sh
 
-# 或者直接一键打包生成 DMG 安装镜像 (build/FnOS-Manager-1.0.4-arm64.dmg)
-./scripts/build_dmg.sh 1.0.4
+# 或者直接一键打包生成 DMG 安装镜像 (build/FnOS-Manager-1.0.5-arm64.dmg)
+./scripts/build_dmg.sh 1.0.5
 
 # 启动 FnOS Manager
 ./scripts/run.sh
 ```
 
-**Windows 平台**：
-```powershell
-git clone https://github.com/Xiaohantx/FnOS-Manager.git
-cd FnOS-Manager/windows
-
-# 使用 .NET 8 编译独立可执行文件
-./scripts/run.ps1 -Build -Arch x64     # 编译 x64
-# ./scripts/run.ps1 -Build -Arch arm64 # 编译 ARM64
-```
+**Windows 平台**：暂时不可用，本次仅提供 macOS ARM64 安装包。Windows 源码暂时保留在仓库中。
 
 ---
 
@@ -110,7 +99,11 @@ cd FnOS-Manager/windows
    - 点击主界面 **「启动系统」**，首次启动会自动进入全自动无人值守安装（约需 40~60 秒），可点击 **「日志」** 实时查看安装进度。
    - 安装完成后会自动重启进入正式系统，状态指示灯变为绿色 **「虚拟系统运行中」**。
 4. **访问飞牛 Web 控制台**：
-   - 点击主界面右侧 **「控制台 ↗」** 按钮（或浏览器访问 `http://nas.fnos`），即可进入飞牛私有云初始化向导并创建管理员账号。
+   - 点击主界面右侧 **「控制台 ↗」** 按钮，或访问偏好设置中显示的 `http://nas.fnos:<端口>`，即可进入飞牛私有云初始化向导并创建管理员账号。
+5. **让局域网其他设备访问**：
+   - 在偏好设置中开启 **「允许局域网设备访问」**。FnOS Manager 会在 Mac 上监听控制台端口，并转发到虚拟机。
+   - 在路由器的本地 DNS / 静态域名设置中，将自定义域名（默认 `nas.fnos`）指向运行 FnOS Manager 的 Mac 的局域网 IP。随后局域网设备访问 `http://nas.fnos:<端口>`；端口使用偏好设置中配置的值。
+   - 如果路由器不支持本地 DNS，可在每台客户端设备上添加同样的域名到 Mac 局域网 IP 的映射。若 macOS 防火墙询问是否允许 FnOS Manager 接收入站连接，请允许。
 
 ---
 
